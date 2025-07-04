@@ -1,0 +1,46 @@
+/**
+ * TheModernByte - Site-specific styles
+ * This is a placeholder file that will be implemented in later tasks
+ */
+
+/* Site-specific color scheme and branding */
+:root {
+    --primary-color: #667eea;
+    --secondary-color: #764ba2;
+    --accent-color: #ff6b6b;
+    --text-color: #333;
+    --bg-color: #ffffff;
+}
+
+/* Navigation styling */
+.main-nav {
+    /* TODO: Implement navigation styling */
+}
+
+.site-title {
+    /* TODO: Implement site title styling */
+}
+
+.nav-links {
+    /* TODO: Implement navigation links styling */
+}
+
+/* Content sections */
+main {
+    /* TODO: Implement main content styling */
+}
+
+/* Ad placeholder styling */
+.ad-placeholder {
+    padding: 20px;
+    margin: 15px 0;
+    background: #f8f9fa;
+    border: 2px dashed #dee2e6;
+    text-align: center;
+    border-radius: 8px;
+}
+
+/* Footer styling */
+footer {
+    /* TODO: Implement footer styling */
+} 

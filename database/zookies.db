@@ -1,0 +1,3 @@
+# Placeholder SQLite database file
+# This file will be initialized with proper schema when the database scripts are run
+# The actual database structure will be created by the init-database.js script 

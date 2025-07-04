@@ -1,0 +1,56 @@
+/* SmartLivingGuide Styles */
+
+:root {
+  --primary-color: #2E7D32;
+  --secondary-color: #66BB6A;
+  --accent-color: #4CAF50;
+  --text-color: #333;
+  --background-color: #ffffff;
+  --card-background: #f8f9fa;
+  --border-color: #e0e0e0;
+  --hover-color: #e8f5e9;
+}
+
+/* Navigation Styles */
+nav {
+  /* TODO: Add navigation styling */
+}
+
+/* Hero Section */
+.hero {
+  /* TODO: Add hero section styling */
+}
+
+/* Content Sections */
+.content-section {
+  /* TODO: Add content section styling */
+}
+
+/* Article Cards */
+.article-card {
+  /* TODO: Add article card styling */
+}
+
+/* Buttons */
+.btn {
+  /* TODO: Add button styling */
+}
+
+/* Footer */
+footer {
+  /* TODO: Add footer styling */
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  /* TODO: Add mobile responsive styles */
+}
+
+/* ZooKies Integration Styles */
+.zookies-ad {
+  /* TODO: Add ZooKies ad styling */
+}
+
+.zookies-modal {
+  /* TODO: Add ZooKies modal styling */
+}
