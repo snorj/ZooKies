@@ -10,7 +10,8 @@
     "test-db": "node scripts/test-database.js",
     "test-keys": "node scripts/test-publisher-keys.js",
     "test-crypto": "node scripts/test-cryptography.js",
-    "test-db-enhanced": "node scripts/test-database-enhanced.js"
+    "test-db-enhanced": "node scripts/test-database-enhanced.js",
+    "test-agent": "node scripts/test-zkAffinityAgent.js"
   },
   "keywords": [
     "zookies",
