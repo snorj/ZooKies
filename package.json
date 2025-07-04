@@ -8,7 +8,8 @@
     "dev": "nodemon server.js",
     "init-db": "node scripts/init-database.js",
     "test-db": "node scripts/test-database.js",
-    "test-keys": "node scripts/test-publisher-keys.js"
+    "test-keys": "node scripts/test-publisher-keys.js",
+    "test-crypto": "node scripts/test-cryptography.js"
   },
   "keywords": [
     "zookies",
