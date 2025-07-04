@@ -11,7 +11,8 @@
     "test-keys": "node scripts/test-publisher-keys.js",
     "test-crypto": "node scripts/test-cryptography.js",
     "test-db-enhanced": "node scripts/test-database-enhanced.js",
-    "test-agent": "node scripts/test-zkAffinityAgent.js"
+    "test-agent": "node scripts/test-zkAffinityAgent.js",
+    "test-server": "node scripts/test-server.js"
   },
   "keywords": [
     "zookies",
@@ -24,6 +25,7 @@
   "author": "ZooKies Team",
   "license": "MIT",
   "dependencies": {
+    "axios": "^1.4.0",
     "express": "^4.18.2",
     "cors": "^2.8.5",
     "sqlite3": "^5.1.6",
