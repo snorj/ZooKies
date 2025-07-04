@@ -1,56 +1,545 @@
-/* SmartLivingGuide Styles */
+/* SmartLivingGuide Styles - Lifestyle-focused Publisher Website */
 
 :root {
+  /* Smart Living Guide Brand Colors */
   --primary-color: #2E7D32;
   --secondary-color: #66BB6A;
   --accent-color: #4CAF50;
   --text-color: #333;
+  --text-light: #666;
   --background-color: #ffffff;
   --card-background: #f8f9fa;
   --border-color: #e0e0e0;
   --hover-color: #e8f5e9;
+  --shadow-light: 0 2px 8px rgba(0,0,0,0.1);
+  --shadow-medium: 0 4px 16px rgba(0,0,0,0.15);
+  --gradient-primary: linear-gradient(135deg, #4CAF50, #2E7D32);
+  --gradient-secondary: linear-gradient(135deg, #66BB6A, #4CAF50);
+  
+  /* Typography */
+  --font-primary: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  --font-secondary: 'Georgia', serif;
+  --font-size-base: 16px;
+  --line-height-base: 1.6;
+  
+  /* Spacing */
+  --spacing-xs: 0.5rem;
+  --spacing-sm: 1rem;
+  --spacing-md: 1.5rem;
+  --spacing-lg: 2rem;
+  --spacing-xl: 3rem;
+  
+  /* Breakpoints */
+  --mobile-max: 768px;
+  --tablet-max: 1024px;
 }
 
-/* Navigation Styles */
-nav {
-  /* TODO: Add navigation styling */
+/* Enhanced Navigation */
+.header {
+  background: var(--background-color);
+  border-bottom: 2px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: var(--shadow-light);
+}
+
+.main-nav {
+  padding: var(--spacing-md) 0;
+}
+
+.nav-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-md);
+}
+
+.site-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin: 0;
+  text-decoration: none;
+  background: var(--gradient-primary);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.5px;
+}
+
+.nav-links {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: var(--spacing-lg);
+}
+
+.nav-link {
+  text-decoration: none;
+  color: var(--text-color);
+  font-weight: 500;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: 25px;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.nav-link:hover,
+.nav-link.active {
+  background: var(--hover-color);
+  color: var(--primary-color);
+  transform: translateY(-2px);
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: var(--accent-color);
+  transform: translateX(-50%);
+  transition: width 0.3s ease;
+}
+
+.nav-link:hover::after,
+.nav-link.active::after {
+  width: 80%;
 }
 
 /* Hero Section */
-.hero {
-  /* TODO: Add hero section styling */
+.hero-section {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e8f5e9 100%);
+  padding: var(--spacing-xl) 0;
+  text-align: center;
+  margin-bottom: var(--spacing-xl);
 }
 
-/* Content Sections */
-.content-section {
-  /* TODO: Add content section styling */
+.hero-section h1 {
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: var(--spacing-md);
+  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.hero-subtitle {
+  font-size: 1.25rem;
+  color: var(--text-light);
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+/* Content Wrapper */
+.content-wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-md);
+  display: grid;
+  gap: var(--spacing-xl);
 }
 
 /* Article Cards */
 .article-card {
-  /* TODO: Add article card styling */
+  background: var(--card-background);
+  border-radius: 16px;
+  padding: var(--spacing-xl);
+  box-shadow: var(--shadow-light);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border: 1px solid var(--border-color);
 }
 
-/* Buttons */
-.btn {
-  /* TODO: Add button styling */
+.article-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-medium);
+}
+
+.article-card h2 {
+  font-size: 2rem;
+  color: var(--primary-color);
+  margin-bottom: var(--spacing-sm);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.meta {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  flex-wrap: wrap;
+}
+
+.meta span {
+  background: var(--hover-color);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: 20px;
+  font-size: 0.9rem;
+  color: var(--text-color);
+  font-weight: 500;
+}
+
+.date {
+  background: var(--gradient-secondary) !important;
+  color: white !important;
+}
+
+.category {
+  background: var(--accent-color) !important;
+  color: white !important;
+}
+
+.rating {
+  background: #fff3cd !important;
+  color: #856404 !important;
+}
+
+.excerpt p {
+  color: var(--text-light);
+  margin-bottom: var(--spacing-md);
+  line-height: var(--line-height-base);
+}
+
+/* Quick Picks, Comparison Tables, and Security Features */
+.quick-picks,
+.comparison-table,
+.security-features {
+  background: var(--background-color);
+  padding: var(--spacing-md);
+  border-radius: 12px;
+  margin: var(--spacing-md) 0;
+  border-left: 4px solid var(--accent-color);
+}
+
+.quick-picks h4,
+.comparison-table h4,
+.security-features h4 {
+  color: var(--primary-color);
+  margin-bottom: var(--spacing-sm);
+  font-size: 1.1rem;
+}
+
+.quick-picks ul,
+.security-features ul {
+  margin: 0;
+  padding-left: var(--spacing-md);
+}
+
+.quick-picks li,
+.security-features li {
+  margin-bottom: var(--spacing-xs);
+  color: var(--text-color);
+}
+
+.comparison-table table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: var(--spacing-sm);
+}
+
+.comparison-table th,
+.comparison-table td {
+  padding: var(--spacing-sm);
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.comparison-table th {
+  background: var(--hover-color);
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.comparison-table tr:hover {
+  background: var(--hover-color);
+}
+
+/* Read More Button */
+.read-more {
+  display: inline-block;
+  background: var(--gradient-primary);
+  color: white;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  text-decoration: none;
+  border-radius: 25px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  margin-top: var(--spacing-md);
+}
+
+.read-more:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+/* Deals Section */
+.deals-section {
+  background: var(--gradient-primary);
+  color: white;
+  padding: var(--spacing-xl);
+  border-radius: 16px;
+  margin-top: var(--spacing-xl);
+}
+
+.deals-section h2 {
+  text-align: center;
+  margin-bottom: var(--spacing-lg);
+  font-size: 2.5rem;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.deals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--spacing-md);
+}
+
+.deal-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: var(--spacing-md);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: transform 0.3s ease;
+}
+
+.deal-card:hover {
+  transform: translateY(-3px);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.deal-card h4 {
+  margin-bottom: var(--spacing-sm);
+  font-size: 1.2rem;
+}
+
+.deal-card p {
+  margin-bottom: var(--spacing-sm);
+  opacity: 0.9;
+}
+
+.deal-badge {
+  background: #ff6b35;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 15px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 /* Footer */
-footer {
-  /* TODO: Add footer styling */
+.footer {
+  background: var(--text-color);
+  color: white;
+  padding: var(--spacing-xl) 0;
+  margin-top: var(--spacing-xl);
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-md);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--spacing-lg);
+}
+
+.footer-section h4 {
+  color: var(--secondary-color);
+  margin-bottom: var(--spacing-sm);
+  font-size: 1.1rem;
+}
+
+.footer-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-links li {
+  margin-bottom: var(--spacing-xs);
+}
+
+.footer-links a {
+  color: #ccc;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.footer-links a:hover {
+  color: var(--secondary-color);
+}
+
+.privacy-note {
+  font-size: 0.9rem;
+  color: #ccc;
+  font-style: italic;
+  line-height: 1.4;
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  /* TODO: Add mobile responsive styles */
+  .nav-container {
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+  
+  .nav-links {
+    gap: var(--spacing-md);
+  }
+  
+  .hero-section h1 {
+    font-size: 2.5rem;
+  }
+  
+  .hero-subtitle {
+    font-size: 1.1rem;
+  }
+  
+  .article-card {
+    padding: var(--spacing-md);
+  }
+  
+  .article-card h2 {
+    font-size: 1.5rem;
+  }
+  
+  .meta {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+  
+  .deals-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .deals-section h2 {
+    font-size: 2rem;
+  }
+  
+  .footer-content {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+  
+  .comparison-table {
+    overflow-x: auto;
+  }
+  
+  .comparison-table table {
+    min-width: 500px;
+  }
 }
 
-/* ZooKies Integration Styles */
-.zookies-ad {
-  /* TODO: Add ZooKies ad styling */
+@media (max-width: 480px) {
+  .container {
+    padding: 0 var(--spacing-sm);
+  }
+  
+  .hero-section {
+    padding: var(--spacing-lg) 0;
+  }
+  
+  .hero-section h1 {
+    font-size: 2rem;
+  }
+  
+  .article-card {
+    padding: var(--spacing-sm);
+  }
+  
+  .deals-section {
+    padding: var(--spacing-lg);
+  }
+  
+  .nav-links {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
 }
 
-.zookies-modal {
-  /* TODO: Add ZooKies modal styling */
+/* Enhanced Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background-color: #1a1a1a;
+    --card-background: #2d2d2d;
+    --text-color: #ffffff;
+    --text-light: #cccccc;
+    --border-color: #404040;
+    --hover-color: #2d4a2f;
+  }
+  
+  .comparison-table th {
+    background: var(--primary-color);
+    color: white;
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  :root {
+    --primary-color: #1b5e20;
+    --secondary-color: #4caf50;
+    --border-color: #000000;
+    --text-color: #000000;
+  }
+  
+  .nav-link {
+    border: 2px solid transparent;
+  }
+  
+  .nav-link:hover,
+  .nav-link.active {
+    border-color: var(--primary-color);
+  }
+}
+
+/* Touch Device Optimizations */
+@media (pointer: coarse) {
+  .nav-link {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+  
+  .read-more {
+    padding: var(--spacing-md) var(--spacing-lg);
+  }
+  
+  .deal-card {
+    padding: var(--spacing-lg);
+  }
+}
+
+/* Print Styles */
+@media print {
+  .nav-container,
+  .footer,
+  .ad-card {
+    display: none;
+  }
+  
+  .article-card {
+    page-break-inside: avoid;
+    box-shadow: none;
+    border: 1px solid #ccc;
+  }
+  
+  .hero-section {
+    background: none;
+    color: #000;
+  }
 }

@@ -3,45 +3,253 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Smart Living Guide - Lifestyle reviews, guides, and deals">
+    <meta name="description" content="Smart Living Guide - Expert lifestyle reviews, guides, and deals for smart living">
+    <meta name="keywords" content="lifestyle, reviews, guides, travel, finance, smart home, product reviews, deals">
     <title>Smart Living Guide - Smart Lifestyle Choices</title>
     <link rel="stylesheet" href="../shared/styles.css">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <header>
+    <header class="header">
         <nav class="main-nav">
-            <div class="nav-container">
+            <div class="container nav-container">
                 <h1 class="site-title">Smart Living Guide</h1>
                 <ul class="nav-links">
-                    <li><a href="#reviews">Reviews</a></li>
-                    <li><a href="#guides">Guides</a></li>
-                    <li><a href="#deals">Deals</a></li>
+                    <li><a href="#reviews" class="nav-link active">Reviews</a></li>
+                    <li><a href="#guides" class="nav-link">Guides</a></li>
+                    <li><a href="#deals" class="nav-link">Deals</a></li>
                 </ul>
             </div>
         </nav>
     </header>
 
-    <main>
-        <section id="reviews">
-            <h2>Product Reviews & Guides</h2>
-            <p>Welcome to Smart Living Guide - your source for smart lifestyle choices and product reviews.</p>
-            <!-- Article content will be implemented in later tasks -->
-        </section>
+    <main class="main-content">
+        <div class="container">
+            <section class="hero-section">
+                <h1>Smart Lifestyle Choices</h1>
+                <p class="hero-subtitle">Expert reviews, practical guides, and exclusive deals for your smart living journey</p>
+            </section>
 
-        <section id="ads">
-            <!-- Ad cards will be implemented in later tasks -->
-            <div class="ad-placeholder">
-                <p>Ad content will be implemented in later tasks</p>
+            <div class="content-wrapper">
+                <!-- Article 1: Travel -->
+                <article class="article-card" id="reviews">
+                    <h2>Top 5 Carry-On Suitcases for 2025</h2>
+                    <div class="meta">
+                        <span class="date">December 2024</span>
+                        <span class="category">Travel Reviews</span>
+                        <span class="rating">⭐⭐⭐⭐⭐</span>
+                    </div>
+                    <div class="excerpt">
+                        <p>After months of rigorous testing and countless flights, we've compiled the definitive guide to the best carry-on suitcases for 2025. Whether you're a business traveler who needs laptop compartments or a weekend warrior seeking maximum packing efficiency, these five suitcases represent the pinnacle of travel gear design.</p>
+                        <p>Our testing process involved real-world travel scenarios: overhead bin compatibility across major airlines, durability stress tests, wheel performance on various surfaces, and organizational features that actually matter to frequent travelers. Each suitcase underwent a minimum of 50 flight hours and 1000 miles of ground transport.</p>
+                        <p>From the ultra-lightweight carbon fiber models to the tech-integrated smart suitcases with built-in charging ports, this year's winners showcase innovations that solve real travel problems while maintaining the durability and style that modern travelers demand.</p>
+                    </div>
+                    <div class="quick-picks">
+                        <h4>🏆 Quick Picks:</h4>
+                        <ul>
+                            <li><strong>Best Overall:</strong> Away The Carry-On Plus</li>
+                            <li><strong>Best Value:</strong> Travelpro Platinum Elite</li>
+                            <li><strong>Most Durable:</strong> Rimowa Essential Cabin</li>
+                            <li><strong>Best Tech Features:</strong> Samsonite Pro-DLX 5</li>
+                            <li><strong>Lightest:</strong> Patagonia Black Hole Wheeled Duffel</li>
+                        </ul>
+                    </div>
+                    <a href="articles/carry-on-suitcases.html" class="read-more">Read Full Review</a>
+                </article>
+
+                <!-- Targeted Travel Ad for Suitcase Article -->
+                <div class="ad-card" data-tag="travel" data-ad-id="tripmate-pro">
+                    <h3>✈️ Travel Smarter with TripMate Pro</h3>
+                    <p>AI-powered travel planning. Book once, travel seamlessly.</p>
+                    <button class="ad-cta ad-click-btn">Learn More</button>
+                </div>
+
+                <!-- Article 2: Finance -->
+                <article class="article-card" id="guides">
+                    <h2>Best Online Banks for Freelancers</h2>
+                    <div class="meta">
+                        <span class="date">December 2024</span>
+                        <span class="category">Financial Guides</span>
+                        <span class="rating">💰💰💰💰💰</span>
+                    </div>
+                    <div class="excerpt">
+                        <p>Freelancing has unique banking needs that traditional banks often overlook. From managing irregular income streams to handling multiple client payments, freelancers require banking solutions that adapt to their dynamic financial reality. After analyzing over 20 online banks and consulting with hundreds of freelancers, we've identified the top platforms that truly understand the gig economy.</p>
+                        <p>Our evaluation criteria focused on the pain points freelancers face daily: transaction fees for frequent transfers, international payment processing, tax preparation integration, and business expense tracking. We also prioritized banks offering high-yield savings accounts to help freelancers maximize their irregular income during feast periods.</p>
+                        <p>The winners excel in areas that matter most to freelancers: seamless integration with popular invoicing platforms, robust mobile apps for on-the-go banking, competitive exchange rates for international clients, and customer support that understands self-employment challenges.</p>
+                    </div>
+                    <div class="comparison-table">
+                        <h4>📊 Quick Comparison:</h4>
+                        <table>
+                            <tr>
+                                <th>Bank</th>
+                                <th>APY</th>
+                                <th>Min. Balance</th>
+                                <th>Monthly Fee</th>
+                                <th>Best For</th>
+                            </tr>
+                            <tr>
+                                <td>Mercury</td>
+                                <td>4.25%</td>
+                                <td>$0</td>
+                                <td>$0</td>
+                                <td>Tech freelancers</td>
+                            </tr>
+                            <tr>
+                                <td>Bluevine</td>
+                                <td>5.00%</td>
+                                <td>$0</td>
+                                <td>$0</td>
+                                <td>High-volume transactions</td>
+                            </tr>
+                            <tr>
+                                <td>Novo</td>
+                                <td>3.75%</td>
+                                <td>$0</td>
+                                <td>$0</td>
+                                <td>Small business integration</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <a href="articles/freelancer-banks.html" class="read-more">Read Full Guide</a>
+                </article>
+
+                <!-- Targeted Finance Ad for Banking Article -->
+                <div class="ad-card" data-tag="finance" data-ad-id="bloom">
+                    <h3>🏦 No Hidden Fees: Meet Bloom</h3>
+                    <p>The interest-free debit card that pays you back.</p>
+                    <button class="ad-cta ad-click-btn">Get Started</button>
+                </div>
+
+                <!-- Article 3: Smart Home/Privacy -->
+                <article class="article-card" id="deals">
+                    <h2>Smart Locks That Actually Work</h2>
+                    <div class="meta">
+                        <span class="date">December 2024</span>
+                        <span class="category">Smart Home Reviews</span>
+                        <span class="rating">🔒🔒🔒🔒🔒</span>
+                    </div>
+                    <div class="excerpt">
+                        <p>The smart lock market is flooded with products that promise convenience but often deliver frustration. After installing and testing 15 different smart locks over 6 months, dealing with everything from WiFi connectivity issues to battery failures during winter storms, we've identified the locks that truly deliver on their smart promises.</p>
+                        <p>Our testing methodology simulated real-world scenarios: daily family use, guest access management, power outages, extreme weather conditions, and most importantly, security stress testing. We also evaluated integration with popular smart home ecosystems including HomeKit, Alexa, Google Assistant, and SmartThings.</p>
+                        <p>The standout performers excel in three critical areas: reliability (they work when you need them most), security (robust encryption and tamper resistance), and usability (intuitive apps and seamless daily operation). These aren't just gadgets – they're genuine home security upgrades that happen to be smart.</p>
+                    </div>
+                    <div class="security-features">
+                        <h4>🛡️ Key Security Features:</h4>
+                        <ul>
+                            <li><strong>Encryption:</strong> AES 128-bit minimum for wireless communication</li>
+                            <li><strong>Auto-Lock:</strong> Customizable timing for automatic re-locking</li>
+                            <li><strong>Tamper Alerts:</strong> Real-time notifications for security breaches</li>
+                            <li><strong>Backup Access:</strong> Physical key override for emergencies</li>
+                            <li><strong>Battery Life:</strong> 12+ months typical usage</li>
+                            <li><strong>Weather Rating:</strong> IP65 or higher for outdoor exposure</li>
+                        </ul>
+                    </div>
+                    <a href="articles/smart-locks.html" class="read-more">Read Security Analysis</a>
+                </article>
+
+                <!-- Targeted Privacy/Streaming Ad for Smart Home Article -->
+                <div class="ad-card" data-tag="privacy" data-ad-id="streamly">
+                    <h3>📱 Get 3 Months Free with Streamly</h3>
+                    <p>VPN + streaming bundle. One app, total privacy.</p>
+                    <button class="ad-cta ad-click-btn">Start Free Trial</button>
+                </div>
             </div>
-        </section>
+
+            <!-- Featured Deals Section -->
+            <section class="deals-section">
+                <h2>🔥 Today's Smart Living Deals</h2>
+                <div class="deals-grid">
+                    <div class="deal-card">
+                        <h4>40% Off Premium Travel Gear</h4>
+                        <p>Limited time offer on our top-rated suitcases</p>
+                        <span class="deal-badge">Expires Tonight</span>
+                    </div>
+                    <div class="deal-card">
+                        <h4>Free Banking for 6 Months</h4>
+                        <p>New freelancer accounts get extended trial</p>
+                        <span class="deal-badge">New Users</span>
+                    </div>
+                    <div class="deal-card">
+                        <h4>Smart Lock Bundle Savings</h4>
+                        <p>Buy 2 smart locks, get installation free</p>
+                        <span class="deal-badge">This Week</span>
+                    </div>
+                </div>
+            </section>
+        </div>
     </main>
 
-    <footer>
-        <p>&copy; 2025 Smart Living Guide. All rights reserved.</p>
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>Smart Living Guide</h4>
+                    <p>Expert reviews and guides for smarter lifestyle choices.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Categories</h4>
+                    <ul class="footer-links">
+                        <li><a href="#reviews">Reviews</a></li>
+                        <li><a href="#guides">Guides</a></li>
+                        <li><a href="#deals">Deals</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Privacy Promise</h4>
+                    <p class="privacy-note">This site demonstrates privacy-first advertising through zero-knowledge attestations.</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Smart Living Guide. All rights reserved. | Privacy-first advertising powered by ZooKies</p>
+            </div>
+        </div>
     </footer>
 
-    <!-- Scripts will be loaded in later tasks -->
+    <!-- Profile Viewer Component -->
+    <div class="profile-viewer" id="profileViewer">
+        <h3>My Profile</h3>
+        <div class="profile-content">
+            <div class="profile-item">
+                <span class="profile-label">Attestations:</span>
+                <span class="profile-value" id="attestationCount">0</span>
+            </div>
+            <div class="profile-item">
+                <span class="profile-label">Last Activity:</span>
+                <span class="profile-value" id="lastActivity">None</span>
+            </div>
+            <div class="profile-item">
+                <span class="profile-label">Interests:</span>
+                <span class="profile-value" id="userInterests">None detected</span>
+            </div>
+        </div>
+        <div class="profile-actions">
+            <button class="btn-refresh" onclick="refreshProfile()">Refresh</button>
+            <button class="btn-reset" onclick="resetProfile()">Reset</button>
+        </div>
+    </div>
+
+    <!-- Modal Overlay for Ad Interactions -->
+    <div class="ad-modal-overlay" id="adModalOverlay" style="display: none;">
+        <div class="ad-modal" id="adModal">
+            <button class="ad-modal-close" onclick="closeAdModal()">&times;</button>
+            <h2 id="adModalTitle">Advertisement</h2>
+            <div class="modal-content" id="adModalContent">
+                <!-- Ad content will be populated by JavaScript -->
+            </div>
+            <div class="modal-actions">
+                <button class="btn-primary" id="adActionBtn">Visit Site</button>
+                <button class="btn-secondary" onclick="closeAdModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success/Error Messages Container -->
+    <div id="messageContainer"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"></script>
+    <script src="../shared/cryptography.js"></script>
+    <script src="../shared/database.js"></script>
     <script src="../shared/zkAffinityAgent.js"></script>
     <script src="scripts.js"></script>
 </body>
