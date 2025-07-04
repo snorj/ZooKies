@@ -3,45 +3,174 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="TheModernByte - Tech news, insights, and reviews">
+    <meta name="description" content="TheModernByte - Tech news, insights, and reviews for the modern digital age">
+    <meta name="keywords" content="technology, AI, privacy, finance, browser security, yield, banking">
     <title>TheModernByte - Modern Tech Insights</title>
     <link rel="stylesheet" href="../shared/styles.css">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <header>
+    <header class="header">
         <nav class="main-nav">
-            <div class="nav-container">
+            <div class="container nav-container">
                 <h1 class="site-title">TheModernByte</h1>
                 <ul class="nav-links">
-                    <li><a href="#tech">Tech</a></li>
-                    <li><a href="#finance">Finance</a></li>
-                    <li><a href="#privacy">Privacy</a></li>
+                    <li><a href="#tech" class="nav-link active">Tech</a></li>
+                    <li><a href="#finance" class="nav-link">Finance</a></li>
+                    <li><a href="#privacy" class="nav-link">Privacy</a></li>
                 </ul>
             </div>
         </nav>
     </header>
 
-    <main>
-        <section id="tech">
-            <h2>Technology News & Insights</h2>
-            <p>Welcome to TheModernByte - your source for modern technology insights and reviews.</p>
-            <!-- Article content will be implemented in later tasks -->
-        </section>
+    <main class="main-content">
+        <div class="container">
+            <section class="hero-section">
+                <h1>Modern Tech Insights</h1>
+                <p class="hero-subtitle">Exploring the intersection of technology, privacy, and finance in our digital age</p>
+            </section>
 
-        <section id="ads">
-            <!-- Ad cards will be implemented in later tasks -->
-            <div class="ad-placeholder">
-                <p>Ad content will be implemented in later tasks</p>
+            <div class="content-wrapper">
+                <!-- Article 1: AI Assistants -->
+                <article class="article-card" id="tech">
+                    <h2>Why AI Assistants Are Everywhere Now</h2>
+                    <div class="meta">
+                        <span class="date">December 2024</span>
+                        <span class="category">Technology</span>
+                    </div>
+                    <div class="excerpt">
+                        <p>The rapid proliferation of AI assistants across every digital platform isn't just a trend—it's a fundamental shift in how we interact with technology. From ChatGPT revolutionizing conversations to GitHub Copilot transforming programming, AI assistants have become the invisible workforce powering our digital experiences.</p>
+                        <p>What started as simple voice commands to Siri and Alexa has evolved into sophisticated AI companions capable of complex reasoning, creative tasks, and professional assistance. The technology that seemed futuristic just a few years ago is now embedded in everything from customer service chatbots to advanced coding environments.</p>
+                        <p>This transformation is driven by breakthrough advances in large language models, improved computational power, and the democratization of AI tools. Companies are racing to integrate AI assistants not just as features, but as core experiences that define their platforms.</p>
+                    </div>
+                    <a href="articles/ai-assistants.html" class="read-more">Read Full Article</a>
+                </article>
+
+                <!-- Targeted Finance Ad for AI Article -->
+                <div class="ad-card" data-tag="finance" data-ad-id="neobank-apy">
+                    <h3>NeoBank+ 5% APY</h3>
+                    <p>💰 Upgrade to 5% APY with NeoBank+ - No minimums. No tricks. Just high yield.</p>
+                    <button class="ad-cta ad-click-btn">Learn More</button>
+                </div>
+
+                <!-- Article 2: Browser Privacy -->
+                <article class="article-card" id="privacy">
+                    <h2>How to Stop Your Browser from Leaking Your Life</h2>
+                    <div class="meta">
+                        <span class="date">December 2024</span>
+                        <span class="category">Privacy & Security</span>
+                    </div>
+                    <div class="excerpt">
+                        <p>Your browser knows more about you than your closest friends. Every click, scroll, and pause is meticulously tracked by an invisible network of data brokers, advertising companies, and analytics platforms. The modern web has become a surveillance apparatus disguised as convenience.</p>
+                        <p>From fingerprinting techniques that can identify your device even in incognito mode to sophisticated tracking pixels that follow you across websites, the methods used to monitor your online behavior have become increasingly sophisticated and invasive.</p>
+                        <p>But you're not powerless. With the right tools and techniques, you can significantly reduce your digital footprint and browse the web with genuine privacy. This guide covers everything from browser hardening to VPN selection, helping you reclaim control over your digital life.</p>
+                    </div>
+                    <a href="articles/browser-privacy.html" class="read-more">Read Full Article</a>
+                </article>
+
+                <!-- Targeted Privacy Ad for Browser Article -->
+                <div class="ad-card" data-tag="privacy" data-ad-id="clearvpn">
+                    <h3>ClearVPN Privacy Shield</h3>
+                    <p>🛡️ Stop Trackers with ClearVPN - Browse privately. No logs. No tracking.</p>
+                    <button class="ad-cta ad-click-btn">Protect Your Privacy</button>
+                </div>
+
+                <!-- Article 3: Finance -->
+                <article class="article-card" id="finance">
+                    <h2>Is 5% Yield the New Normal?</h2>
+                    <div class="meta">
+                        <span class="date">December 2024</span>
+                        <span class="category">Financial Technology</span>
+                    </div>
+                    <div class="excerpt">
+                        <p>The financial landscape has dramatically shifted in recent years, with high-yield savings accounts offering rates that seemed impossible just a decade ago. The question isn't whether these rates will last, but how they're reshaping the entire banking ecosystem.</p>
+                        <p>Traditional banks, once comfortable with offering near-zero interest rates, are now competing fiercely with fintech newcomers and online-first institutions. This competition has created an unprecedented opportunity for consumers to earn meaningful returns on their savings without taking on investment risk.</p>
+                        <p>Understanding this shift requires looking beyond the headline rates to examine the underlying economics, regulatory changes, and technological innovations that make these yields sustainable. The implications extend far beyond individual savings accounts to the future of banking itself.</p>
+                    </div>
+                    <a href="#" class="read-more">Read Full Article</a>
+                </article>
+
+                <!-- Targeted Gaming Ad for Finance Article -->
+                <div class="ad-card" data-tag="gaming" data-ad-id="gamegrid">
+                    <h3>GameGrid Browser Games</h3>
+                    <p>🎮 Try GameGrid – Free Browser Games - Play instantly. No downloads required.</p>
+                    <button class="ad-cta ad-click-btn">Start Playing</button>
+                </div>
             </div>
-        </section>
+        </div>
     </main>
 
-    <footer>
-        <p>&copy; 2025 TheModernByte. All rights reserved.</p>
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>TheModernByte</h4>
+                    <p>Insightful technology coverage for the modern digital age.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Categories</h4>
+                    <ul class="footer-links">
+                        <li><a href="#tech">Technology</a></li>
+                        <li><a href="#finance">Finance</a></li>
+                        <li><a href="#privacy">Privacy</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Privacy</h4>
+                    <p class="privacy-note">This site demonstrates privacy-first advertising through zero-knowledge attestations.</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 TheModernByte. All rights reserved. | Privacy-first advertising powered by ZooKies</p>
+            </div>
+        </div>
     </footer>
 
-    <!-- Scripts will be loaded in later tasks -->
+    <!-- Profile Viewer Component -->
+    <div class="profile-viewer" id="profileViewer">
+        <h3>My Profile</h3>
+        <div class="profile-content">
+            <div class="profile-item">
+                <span class="profile-label">Attestations:</span>
+                <span class="profile-value" id="attestationCount">0</span>
+            </div>
+            <div class="profile-item">
+                <span class="profile-label">Last Activity:</span>
+                <span class="profile-value" id="lastActivity">None</span>
+            </div>
+            <div class="profile-item">
+                <span class="profile-label">Interests:</span>
+                <span class="profile-value" id="userInterests">None detected</span>
+            </div>
+        </div>
+        <div class="profile-actions">
+            <button class="btn-refresh" onclick="refreshProfile()">Refresh</button>
+            <button class="btn-reset" onclick="resetProfile()">Reset</button>
+        </div>
+    </div>
+
+    <!-- Modal Overlay for Ad Interactions -->
+    <div class="ad-modal-overlay" id="adModalOverlay" style="display: none;">
+        <div class="ad-modal" id="adModal">
+            <button class="ad-modal-close" onclick="closeAdModal()">&times;</button>
+            <h2 id="adModalTitle">Advertisement</h2>
+            <div class="modal-content" id="adModalContent">
+                <!-- Ad content will be populated by JavaScript -->
+            </div>
+            <div class="modal-actions">
+                <button class="btn-primary" id="adActionBtn">Visit Site</button>
+                <button class="btn-secondary" onclick="closeAdModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success/Error Messages Container -->
+    <div id="messageContainer"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"></script>
+    <script src="../shared/cryptography.js"></script>
+    <script src="../shared/database.js"></script>
     <script src="../shared/zkAffinityAgent.js"></script>
     <script src="scripts.js"></script>
 </body>
