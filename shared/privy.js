@@ -28,12 +28,25 @@ try {
     privyAvailable = false;
 }
 
-// Import IndexedDB for storage
-let openDB;
-if (isBrowser && window.idb) {
-    openDB = window.idb.openDB;
-} else {
-    console.warn('IndexedDB not available');
+// Initialize global variables with fallback for missing dependencies
+let ethers, openDBRef;
+
+try {
+    // Try to access ethers from global scope
+    ethers = window.ethers;
+    if (!ethers) {
+        console.warn('Ethers.js not available, some wallet operations may fail');
+    }
+
+    // Try to access IndexedDB helper (avoid conflicts with existing openDB)
+    if (window.idb && window.idb.openDB && typeof window.openDB === 'undefined') {
+        openDBRef = window.idb.openDB;
+    } else if (window.idb && window.idb.openDB) {
+        openDBRef = window.idb.openDB;
+    }
+    
+} catch (error) {
+    console.warn('Privy modules not available, using fallback wallet generation:', error.message);
 }
 
 // Constants
@@ -71,13 +84,13 @@ function generateTemporaryWallet() {
 
 // IndexedDB setup
 async function initializeDB() {
-    if (!openDB) {
+    if (!openDBRef) {
         console.warn('IndexedDB not available, using in-memory storage');
         return null;
     }
     
     try {
-        const db = await openDB(DB_NAME, DB_VERSION, {
+        const db = await openDBRef(DB_NAME, DB_VERSION, {
             upgrade(db) {
                 if (!db.objectStoreNames.contains(WALLET_STORE)) {
                     db.createObjectStore(WALLET_STORE, { keyPath: 'wallet' });

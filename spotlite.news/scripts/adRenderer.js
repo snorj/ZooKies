@@ -21,8 +21,8 @@ function renderAd(tag) {
         return Promise.reject(new Error('Invalid tag provided'));
     }
     
-    // Construct ad path
-    const adPath = `/ads/${tag}.html`;
+    // Construct ad path (relative to spotlite.news directory)
+    const adPath = `ads/${tag}.html`;
     console.log(`🔍 Fetching ad from: ${adPath}`);
     
     // Ensure ad container exists

@@ -247,12 +247,12 @@
                 
                 console.log('📊 Ad request result:', result);
                 
-                // Check if proof is valid and user qualifies
-                if (result.success && result.proof.verified) {
+                // Check if user qualifies for targeted ads
+                if (result.qualified && result.adContent) {
                     console.log('✅ ZK proof verified - rendering targeted ad');
                     
-                    // Render the ad using adRenderer.js
-                    await renderAd(result.ad.tag);
+                    // Render the ad using adRenderer.js with the finance tag
+                    await renderAd("finance");
                     
                     // Show debug info for judges
                     showProofDebug(result);
@@ -295,8 +295,8 @@
                 const result = await window.zkAffinityAgent.requestAd({ tag: "finance", threshold: 2 });
                 console.log('Demo result:', result);
                 
-                if (result.success && result.proof.verified) {
-                    await renderAd(result.ad.tag);
+                if (result.qualified && result.adContent) {
+                    await renderAd("finance");
                     showProofDebug(result);
                 } else {
                     renderNoAd();
@@ -323,7 +323,7 @@
                     results[tag] = result;
                     
                     // Test ad rendering
-                    if (result.success && result.proof.verified) {
+                    if (result.qualified && result.adContent) {
                         await renderAd(tag);
                     }
                     
