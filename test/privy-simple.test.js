@@ -1,4 +1,8 @@
-// Simple test to verify our Privy module structure without complex mocking
+/**
+ * Simple test for Privy module structure
+ */
+
+import { describe, test, expect } from '@jest/globals';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -6,19 +10,39 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-describe('Privy Module File Structure', () => {
+describe('Privy Module Structure', () => {
+    test('should have proper file structure', () => {
+        // Test that our files exist
+        const privyFilePath = path.join(__dirname, '../shared/privy.js');
+        const profileStoreFilePath = path.join(__dirname, '../shared/profile-store.js');
+        const browserDBFilePath = path.join(__dirname, '../shared/database-browser.js');
+        
+        expect(fs.existsSync(privyFilePath)).toBe(true);
+        expect(fs.existsSync(profileStoreFilePath)).toBe(true);
+        expect(fs.existsSync(browserDBFilePath)).toBe(true);
+    });
+
+    test('should have proper module exports', () => {
+        const privyFilePath = path.join(__dirname, '../shared/privy.js');
+        const fileContent = fs.readFileSync(privyFilePath, 'utf8');
+        
+        // Check that our actual exports exist
+        expect(fileContent).toContain('export async function getEmbeddedWallet');
+        expect(fileContent).toContain('export async function createSignedProfileClaim');
+        expect(fileContent).toContain('export const privyConfig');
+    });
+
   test('shared/privy.js file exists and is readable', () => {
     const privyFilePath = path.join(__dirname, '../shared/privy.js');
     expect(fs.existsSync(privyFilePath)).toBe(true);
     
     const fileContent = fs.readFileSync(privyFilePath, 'utf8');
     expect(fileContent).toContain('export async function initPrivy');
-    expect(fileContent).toContain('export async function getPrivyWallet');
-    expect(fileContent).toContain('export async function clearWalletCache');
-    expect(fileContent).toContain('export async function isWalletConnected');
-    expect(fileContent).toContain('export async function getWalletAddress');
-    expect(fileContent).toContain('export async function handleSessionRestore');
-    expect(fileContent).toContain('export function enableDebugLogging');
+    expect(fileContent).toContain('export async function getEmbeddedWallet');
+    expect(fileContent).toContain('export async function createSignedProfileClaim');
+    expect(fileContent).toContain('export async function getProfile');
+    expect(fileContent).toContain('export async function getWalletDebugInfo');
+    expect(fileContent).toContain('export const privyConfig');
   });
 
   test('module contains required constants and configuration', () => {
@@ -30,7 +54,7 @@ describe('Privy Module File Structure', () => {
     expect(fileContent).toContain('DB_NAME');
     expect(fileContent).toContain('zookies_privy_cache');
     expect(fileContent).toContain('embeddedWallets');
-    expect(fileContent).toContain('noPrompt: true');
+    expect(fileContent).toContain('showWalletUIs: false');
   });
 
   test('module has proper error handling structure', () => {
@@ -47,7 +71,7 @@ describe('Privy Module File Structure', () => {
     const privyFilePath = path.join(__dirname, '../shared/privy.js');
     const fileContent = fs.readFileSync(privyFilePath, 'utf8');
     
-    expect(fileContent).toContain("import { PrivyProvider } from '@privy-io/react-auth'");
+    expect(fileContent).toContain("import { PrivyProvider, useWallets } from '@privy-io/react-auth'");
     expect(fileContent).toContain("import { openDB } from 'idb'");
   });
 

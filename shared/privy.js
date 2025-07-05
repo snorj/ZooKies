@@ -39,6 +39,9 @@ export const privyConfig = {
     }
 };
 
+// Alternative export name for compatibility
+export const PRIVY_CONFIG = privyConfig;
+
 /**
  * Initialize Privy SDK with embedded wallet configuration
  * @returns {Promise<{success: boolean, error?: string}>}

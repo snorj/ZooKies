@@ -3,7 +3,7 @@
  * Tests the profile store, browser database, and Privy SDK integration
  */
 
-const { describe, test, expect, beforeEach, afterEach } = require('@jest/globals');
+import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
 
 // Mock idb for testing
 const mockDB = {
@@ -70,7 +70,7 @@ describe('Privy Integration Tests', () => {
         });
 
         test('should ensure wallet and profile creation', async () => {
-            const { getEmbeddedWallet, createSignedProfileClaim } = require('../shared/privy.js');
+            const { getEmbeddedWallet, createSignedProfileClaim } = await import('../shared/privy.js');
             
             // Mock successful wallet retrieval
             getEmbeddedWallet.mockResolvedValue({
@@ -97,7 +97,7 @@ describe('Privy Integration Tests', () => {
         });
 
         test('should return existing valid profile', async () => {
-            const { getEmbeddedWallet } = require('../shared/privy.js');
+            const { getEmbeddedWallet } = await import('../shared/privy.js');
             
             getEmbeddedWallet.mockResolvedValue({
                 wallet: { address: mockWalletAddress },
@@ -114,7 +114,7 @@ describe('Privy Integration Tests', () => {
         });
 
         test('should handle wallet creation failure', async () => {
-            const { getEmbeddedWallet } = require('../shared/privy.js');
+            const { getEmbeddedWallet } = await import('../shared/privy.js');
             
             getEmbeddedWallet.mockResolvedValue({
                 wallet: null,
@@ -357,7 +357,7 @@ describe('Privy Integration Tests', () => {
 
     describe('Integration Tests', () => {
         test('should work together for complete profile management', async () => {
-            const { getEmbeddedWallet, createSignedProfileClaim } = require('../shared/privy.js');
+            const { getEmbeddedWallet, createSignedProfileClaim } = await import('../shared/privy.js');
             const profileStore = await import('../shared/profile-store.js');
             
             // Mock successful wallet and profile creation
