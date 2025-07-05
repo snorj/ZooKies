@@ -1,7 +1,7 @@
 // Jest setup file for ZooKies E2E tests
 
-// Extend Jest timeout for E2E tests
-jest.setTimeout(60000);
+// Note: In ES modules mode, jest globals are available differently
+// We'll handle timeouts in individual test files as needed
 
 // Suppress console warnings during tests
 const originalConsoleWarn = console.warn;
@@ -13,7 +13,7 @@ console.warn = (...args) => {
 };
 
 // Global test configuration
-global.testConfig = {
+globalThis.testConfig = {
   headless: process.env.TEST_HEADLESS !== 'false',
   slowMo: process.env.TEST_SLOW_MO ? parseInt(process.env.TEST_SLOW_MO) : 0
 }; 

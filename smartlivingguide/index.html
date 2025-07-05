@@ -19,6 +19,12 @@
                     <li><a href="#guides" class="nav-link">Guides</a></li>
                     <li><a href="#deals" class="nav-link">Deals</a></li>
                 </ul>
+                <!-- Wallet Debug Viewer -->
+                <div class="wallet-debug" id="walletDebug">
+                    <span class="wallet-label">Wallet:</span>
+                    <span class="wallet-address" id="walletAddress">Connecting...</span>
+                    <button class="wallet-refresh" id="walletRefresh" onclick="refreshWalletDisplay()" title="Refresh wallet info">🔄</button>
+                </div>
             </div>
         </nav>
     </header>
@@ -243,9 +249,12 @@
 
     <!-- Scripts -->
     <script src="../lib/ethers/dist/ethers.umd.min.js"></script>
+    <script src="../lib/idb/idb.umd.js"></script>
     <script src="../shared/cryptography-browser.js"></script>
     <script src="../shared/database-browser.js"></script>
     <script src="../shared/publisher-keys-browser.js"></script>
+    <script src="../shared/privy.js"></script>
+    <script src="../shared/profile-store.js"></script>
     <script>console.log('🧪 Test script executing before zkAffinityAgent.js');</script>
     <script src="../shared/zkAffinityAgent.js"></script>
     <script>console.log('🧪 Test script executing after zkAffinityAgent.js');</script>

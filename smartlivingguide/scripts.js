@@ -24,8 +24,12 @@ document.addEventListener('DOMContentLoaded', async function() {
             throw new Error('zkAffinityAgent not available');
         }
         
-        await zkAgent.initializeWallet();
-        console.log('zkAffinityAgent initialized successfully');
+        // Use global wallet system instead of site-specific wallet
+        const walletResult = await zkAgent.ensureWalletAndProfile();
+        if (!walletResult.success) {
+            throw new Error('Failed to initialize global wallet: ' + walletResult.error);
+        }
+        console.log('✅ Global wallet initialized:', walletResult.isGlobal ? 'Global' : 'Fallback');
         
         // Set up event listeners
         setupEventListeners();
@@ -35,6 +39,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Set up navigation highlighting
         setupNavigation();
+        
+        // Initialize wallet debug display
+        await initializeWalletDebug();
         
         console.log('Smart Living Guide - Site initialized successfully');
     } catch (error) {
@@ -733,4 +740,152 @@ document.addEventListener('DOMContentLoaded', () => {
             closeAdModal();
         });
     }
-}); 
+});
+
+// ============ WALLET DEBUG FUNCTIONALITY ============
+
+/**
+ * Initialize wallet debug display
+ */
+async function initializeWalletDebug() {
+    console.log('🔧 Initializing wallet debug display...');
+    
+    try {
+        // Get wallet info and update display
+        await updateWalletDisplay();
+        
+        // Set up console debugging methods
+        setupWalletConsoleDebug();
+        
+        console.log('✅ Wallet debug display initialized');
+    } catch (error) {
+        console.error('❌ Failed to initialize wallet debug:', error);
+        updateWalletDisplay('Error');
+    }
+}
+
+/**
+ * Update the wallet address display
+ */
+async function updateWalletDisplay(status = null) {
+    const walletAddressElement = document.getElementById('walletAddress');
+    if (!walletAddressElement) return;
+    
+    try {
+        if (status === 'Error') {
+            walletAddressElement.textContent = 'Error';
+            walletAddressElement.className = 'wallet-address error';
+            return;
+        }
+        
+        // Show loading state
+        walletAddressElement.textContent = 'Loading...';
+        walletAddressElement.className = 'wallet-address loading';
+        
+        // Get wallet info from zkAgent
+        if (!zkAgent) {
+            throw new Error('zkAgent not available');
+        }
+        
+        // Try to get wallet using new Privy integration first
+        let walletAddress = null;
+        if (zkAgent.getWalletShort) {
+            try {
+                walletAddress = await zkAgent.getWalletShort();
+            } catch (error) {
+                console.warn('Privy wallet not available, trying fallback:', error);
+            }
+        }
+        
+        // Fallback to old method if Privy not available
+        if (!walletAddress) {
+            const fullAddress = await zkAgent.getWalletAddress();
+            walletAddress = truncateAddress(fullAddress);
+        }
+        
+        // Update display
+        walletAddressElement.textContent = walletAddress;
+        walletAddressElement.className = 'wallet-address';
+        
+        // Add click handler for full address
+        walletAddressElement.onclick = () => {
+            console.log('Full wallet info:', zkAgent.getWallet ? zkAgent.getWallet() : 'getWallet() not available');
+        };
+        
+    } catch (error) {
+        console.error('Failed to get wallet address:', error);
+        walletAddressElement.textContent = 'No Wallet';
+        walletAddressElement.className = 'wallet-address error';
+    }
+}
+
+/**
+ * Refresh wallet display (called by refresh button)
+ */
+async function refreshWalletDisplay() {
+    console.log('🔄 Refreshing wallet display...');
+    await updateWalletDisplay();
+}
+
+/**
+ * Truncate wallet address for display
+ */
+function truncateAddress(address) {
+    if (!address || address.length < 10) return address;
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
+
+/**
+ * Set up console debugging methods for judges
+ */
+function setupWalletConsoleDebug() {
+    // Enhanced global zkAgent object for debugging
+    if (!window.zkAgent) {
+        window.zkAgent = {};
+    }
+    
+    // Add debug methods
+    window.zkAgent.getWallet = () => {
+        if (zkAgent && zkAgent.getWallet) {
+            return zkAgent.getWallet();
+        } else if (zkAgent && zkAgent.wallet) {
+            return zkAgent.wallet;
+        } else {
+            console.warn('Wallet not available. Try clicking an ad first to initialize.');
+            return null;
+        }
+    };
+    
+    window.zkAgent.getWalletShort = () => {
+        if (zkAgent && zkAgent.getWalletShort) {
+            return zkAgent.getWalletShort();
+        } else {
+            const wallet = window.zkAgent.getWallet();
+            return wallet ? truncateAddress(wallet.address) : 'No wallet';
+        }
+    };
+    
+    // ensureWalletAndProfile is already set up by zkAffinityAgent.js
+    // No need to override it here
+    
+    window.zkAgent.getProfile = () => {
+        if (zkAgent && zkAgent.getProfileSummary) {
+            return zkAgent.getProfileSummary();
+        } else {
+            console.warn('Profile functionality not available');
+            return null;
+        }
+    };
+    
+    window.zkAgent.refreshWallet = () => {
+        refreshWalletDisplay();
+    };
+    
+    // Log available debug commands
+    console.log('🔧 Wallet Debug Commands Available:');
+    console.log('  window.zkAgent.getWallet() - Get full wallet object');
+    console.log('  window.zkAgent.getWalletShort() - Get truncated address');
+    console.log('  window.zkAgent.ensureWalletAndProfile() - Initialize Privy wallet');
+    console.log('  window.zkAgent.getProfile() - Get profile summary');
+    console.log('  window.zkAgent.refreshWallet() - Refresh wallet display');
+} 

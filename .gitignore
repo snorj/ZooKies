@@ -24,15 +24,13 @@ node_modules/
 # OS specific
 .DS_Store
 
-# Task files
-# tasks.json
-# tasks/
-
 # Added by Task Master AI
-tasks.json
-tasks/ 
 
 # Development and configuration directories
 .cursor
 .github/
 .taskmaster/ 
+
+# Task files
+# tasks.json
+# tasks/ 

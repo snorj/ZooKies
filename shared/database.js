@@ -2,13 +2,26 @@
  * Database module for SQLite operations
  * Enhanced with cryptographic signature verification and comprehensive attestation management
  * Handles attestation storage, user profile management, and signature validation
+ * Now includes IndexedDB wrapper for browser-side profile storage
  */
 
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
-const { v4: uuidv4 } = require('uuid');
-const { PublisherSigner } = require('./cryptography');
-const { PUBLISHER_KEYS } = require('./publisher-keys');
+import sqlite3Package from 'sqlite3';
+const sqlite3 = sqlite3Package.verbose();
+import path from 'path';
+import { v4 as uuidv4 } from 'uuid';
+import { PublisherSigner } from './cryptography.js';
+import { PUBLISHER_KEYS } from './publisher-keys.js';
+
+// Browser-side IndexedDB support
+let idb = null;
+if (typeof window !== 'undefined') {
+    // Dynamically import idb for browser environments
+    import('idb').then(module => {
+        idb = module;
+    }).catch(err => {
+        console.warn('IndexedDB not available:', err);
+    });
+}
 
 /**
  * Custom error classes for database operations
@@ -24,6 +37,238 @@ class ValidationError extends DatabaseError {
     constructor(message) {
         super(message);
         this.name = 'ValidationError';
+    }
+}
+
+/**
+ * IndexedDB wrapper for browser-side profile storage
+ * Provides similar interface to SQLite for profiles and attestations
+ */
+class IndexedDBWrapper {
+    constructor() {
+        this.dbName = 'zookies_privy_cache';
+        this.version = 1;
+        this.db = null;
+    }
+
+    /**
+     * Initialize IndexedDB connection
+     * @returns {Promise<void>}
+     */
+    async initialize() {
+        if (!idb || typeof window === 'undefined') {
+            throw new DatabaseError('IndexedDB not available in this environment');
+        }
+
+        try {
+            this.db = await idb.openDB(this.dbName, this.version, {
+                upgrade(db) {
+                    // Profiles store - for wallet-bound profiles
+                    if (!db.objectStoreNames.contains('profiles')) {
+                        const profileStore = db.createObjectStore('profiles', { keyPath: 'wallet' });
+                        profileStore.createIndex('createdAt', 'createdAt');
+                        profileStore.createIndex('lastUpdated', 'lastUpdated');
+                    }
+
+                    // Attestations store - for client-side attestation cache
+                    if (!db.objectStoreNames.contains('attestations')) {
+                        const attestationStore = db.createObjectStore('attestations', { 
+                            keyPath: 'id',
+                            autoIncrement: true 
+                        });
+                        attestationStore.createIndex('walletAddress', 'walletAddress');
+                        attestationStore.createIndex('tag', 'tag');
+                        attestationStore.createIndex('timestamp', 'timestamp');
+                        attestationStore.createIndex('publisher', 'publisher');
+                    }
+
+                    // Sessions store - for wallet session persistence
+                    if (!db.objectStoreNames.contains('sessions')) {
+                        const sessionStore = db.createObjectStore('sessions', { keyPath: 'key' });
+                        sessionStore.createIndex('walletAddress', 'walletAddress');
+                        sessionStore.createIndex('expiresAt', 'expiresAt');
+                    }
+                }
+            });
+            
+            console.log('IndexedDB initialized successfully');
+        } catch (error) {
+            console.error('Failed to initialize IndexedDB:', error);
+            throw new DatabaseError(`Failed to initialize IndexedDB: ${error.message}`);
+        }
+    }
+
+    /**
+     * Store profile in IndexedDB
+     * @param {Object} profile - Profile object with wallet address as key
+     * @returns {Promise<void>}
+     */
+    async storeProfile(profile) {
+        if (!this.db) await this.initialize();
+        
+        try {
+            profile.lastUpdated = Date.now();
+            await this.db.put('profiles', profile);
+            console.log('Profile stored in IndexedDB:', profile.wallet);
+        } catch (error) {
+            throw new DatabaseError(`Failed to store profile: ${error.message}`);
+        }
+    }
+
+    /**
+     * Get profile by wallet address
+     * @param {string} walletAddress - Wallet address
+     * @returns {Promise<Object|null>}
+     */
+    async getProfile(walletAddress) {
+        if (!this.db) await this.initialize();
+        
+        try {
+            const profile = await this.db.get('profiles', walletAddress);
+            return profile || null;
+        } catch (error) {
+            throw new DatabaseError(`Failed to get profile: ${error.message}`);
+        }
+    }
+
+    /**
+     * Store attestation in IndexedDB
+     * @param {Object} attestation - Attestation object
+     * @returns {Promise<number>} - Attestation ID
+     */
+    async storeAttestation(attestation) {
+        if (!this.db) await this.initialize();
+        
+        try {
+            const id = await this.db.add('attestations', {
+                ...attestation,
+                storedAt: Date.now()
+            });
+            console.log('Attestation stored in IndexedDB with ID:', id);
+            return id;
+        } catch (error) {
+            throw new DatabaseError(`Failed to store attestation: ${error.message}`);
+        }
+    }
+
+    /**
+     * Get attestations by wallet address and optional tag
+     * @param {string} walletAddress - Wallet address
+     * @param {string} tag - Optional tag filter
+     * @returns {Promise<Array>}
+     */
+    async getAttestations(walletAddress, tag = null) {
+        if (!this.db) await this.initialize();
+        
+        try {
+            const tx = this.db.transaction('attestations', 'readonly');
+            const store = tx.objectStore('attestations');
+            const index = store.index('walletAddress');
+            
+            let attestations = await index.getAll(walletAddress);
+            
+            if (tag) {
+                attestations = attestations.filter(att => att.tag === tag);
+            }
+            
+            return attestations.sort((a, b) => b.timestamp - a.timestamp);
+        } catch (error) {
+            throw new DatabaseError(`Failed to get attestations: ${error.message}`);
+        }
+    }
+
+    /**
+     * Store session data
+     * @param {string} key - Session key
+     * @param {Object} data - Session data
+     * @param {number} expiresAt - Expiration timestamp
+     * @returns {Promise<void>}
+     */
+    async storeSession(key, data, expiresAt = null) {
+        if (!this.db) await this.initialize();
+        
+        try {
+            await this.db.put('sessions', {
+                key,
+                data,
+                expiresAt: expiresAt || (Date.now() + (24 * 60 * 60 * 1000)), // 24 hours default
+                createdAt: Date.now()
+            });
+        } catch (error) {
+            throw new DatabaseError(`Failed to store session: ${error.message}`);
+        }
+    }
+
+    /**
+     * Get session data
+     * @param {string} key - Session key
+     * @returns {Promise<Object|null>}
+     */
+    async getSession(key) {
+        if (!this.db) await this.initialize();
+        
+        try {
+            const session = await this.db.get('sessions', key);
+            
+            if (!session) return null;
+            
+            // Check if session has expired
+            if (session.expiresAt && Date.now() > session.expiresAt) {
+                await this.db.delete('sessions', key);
+                return null;
+            }
+            
+            return session.data;
+        } catch (error) {
+            throw new DatabaseError(`Failed to get session: ${error.message}`);
+        }
+    }
+
+    /**
+     * Clear expired sessions
+     * @returns {Promise<number>} - Number of sessions cleared
+     */
+    async clearExpiredSessions() {
+        if (!this.db) await this.initialize();
+        
+        try {
+            const tx = this.db.transaction('sessions', 'readwrite');
+            const store = tx.objectStore('sessions');
+            const index = store.index('expiresAt');
+            
+            const now = Date.now();
+            const expiredSessions = await index.getAll(IDBKeyRange.upperBound(now));
+            
+            for (const session of expiredSessions) {
+                await store.delete(session.key);
+            }
+            
+            await tx.done;
+            return expiredSessions.length;
+        } catch (error) {
+            throw new DatabaseError(`Failed to clear expired sessions: ${error.message}`);
+        }
+    }
+
+    /**
+     * Clear all data (for testing/reset)
+     * @returns {Promise<void>}
+     */
+    async clearAll() {
+        if (!this.db) await this.initialize();
+        
+        try {
+            const tx = this.db.transaction(['profiles', 'attestations', 'sessions'], 'readwrite');
+            await Promise.all([
+                tx.objectStore('profiles').clear(),
+                tx.objectStore('attestations').clear(),
+                tx.objectStore('sessions').clear()
+            ]);
+            await tx.done;
+            console.log('All IndexedDB data cleared');
+        } catch (error) {
+            throw new DatabaseError(`Failed to clear IndexedDB: ${error.message}`);
+        }
     }
 }
 
@@ -530,8 +775,9 @@ class EnhancedDatabaseManager extends DatabaseManager {
     }
 }
 
-module.exports = { 
-    DatabaseManager: EnhancedDatabaseManager,
+export { 
+    EnhancedDatabaseManager as DatabaseManager,
+    IndexedDBWrapper,
     DatabaseError,
     ValidationError
 }; 

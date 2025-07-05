@@ -9,6 +9,26 @@ console.log('🟢 zkAffinityAgent.js file is starting to execute...');
 // Browser-compatible imports with fallbacks
 let ethers;
 
+// Privy integration imports
+let privyModule, profileStoreModule, databaseModule;
+
+// Load Privy modules in browser environment
+if (typeof window !== 'undefined') {
+    // Dynamic imports for browser environment
+    Promise.all([
+        import('./privy.js'),
+        import('./profile-store.js'),
+        import('./database-browser.js')
+    ]).then(([privy, profileStore, database]) => {
+        privyModule = privy;
+        profileStoreModule = profileStore;
+        databaseModule = database;
+        console.log('🔗 Privy modules loaded successfully');
+    }).catch(error => {
+        console.warn('⚠️ Privy modules not available:', error);
+    });
+}
+
 // Helper functions to get references without variable conflicts
 function getDatabaseManager() {
     if (typeof window !== 'undefined') {
@@ -166,8 +186,165 @@ class ZkAffinityAgent {
         
         // Bind methods to preserve 'this' context
         this.initializeWallet = this.initializeWallet.bind(this);
+        this.ensureWalletAndProfile = this.ensureWalletAndProfile.bind(this);
+        this.getWallet = this.getWallet.bind(this);
+        this.getWalletShort = this.getWalletShort.bind(this);
         
         console.log('🔧 ZkAffinityAgent constructor completed successfully');
+    }
+
+    /**
+     * Ensure wallet exists and profile is bound using Privy integration
+     * This is the main initialization method that replaces the temporary wallet logic
+     * @returns {Promise<{success: boolean, wallet?: object, profile?: object, error?: string}>}
+     */
+    async ensureWalletAndProfile() {
+        try {
+            console.log('🔗 Ensuring global wallet and profile...');
+
+            // Try to use the global Privy wallet first
+            if (typeof window !== 'undefined' && window.privyModule) {
+                try {
+                    console.log('🌐 Using global Privy wallet system');
+                    const { getEmbeddedWallet, createSignedProfileClaim } = window.privyModule;
+                    
+                    // Get or create the global wallet
+                    const walletResult = await getEmbeddedWallet();
+                    if (walletResult.wallet) {
+                        this.wallet = walletResult.wallet;
+                        this.isInitialized = true;
+                        
+                        console.log('✅ Global wallet ensured:', this.wallet.address);
+                        
+                        // Ensure profile is signed
+                        if (!this.profileSigned) {
+                            const claimResult = await createSignedProfileClaim();
+                            if (claimResult.success) {
+                                this.profileSigned = true;
+                                console.log('📋 Profile claim signed with global wallet');
+                            }
+                        }
+                        
+                        return {
+                            success: true,
+                            wallet: this.wallet,
+                            isGlobal: true,
+                            walletAddress: this.wallet.address
+                        };
+                    }
+                } catch (privyError) {
+                    console.warn('⚠️ Global Privy wallet failed:', privyError.message);
+                }
+            }
+
+            // Fallback: Check if we have existing global wallet data
+            if (typeof window !== 'undefined' && window.localStorage) {
+                const globalWalletKey = 'zookies_global_wallet';
+                const existingWallet = localStorage.getItem(globalWalletKey);
+                
+                if (existingWallet) {
+                    try {
+                        const walletData = JSON.parse(existingWallet);
+                        if (window.ethers && walletData.privateKey) {
+                            this.wallet = new window.ethers.Wallet(walletData.privateKey);
+                            this.isInitialized = true;
+                            
+                            console.log('✅ Restored global wallet:', this.wallet.address);
+                            return {
+                                success: true,
+                                wallet: this.wallet,
+                                isGlobal: true,
+                                walletAddress: this.wallet.address
+                            };
+                        }
+                    } catch (parseError) {
+                        console.warn('⚠️ Failed to parse global wallet data:', parseError.message);
+                    }
+                }
+            }
+
+            // Final fallback: Create new global wallet
+            console.log('🔄 Creating new global wallet');
+            if (window.ethers) {
+                this.wallet = window.ethers.Wallet.createRandom();
+                this.isInitialized = true;
+                
+                // Store globally for all sites
+                if (typeof localStorage !== 'undefined') {
+                    const globalWalletKey = 'zookies_global_wallet';
+                    localStorage.setItem(globalWalletKey, JSON.stringify({
+                        address: this.wallet.address,
+                        privateKey: this.wallet.privateKey,
+                        createdAt: Date.now(),
+                        version: '1.0'
+                    }));
+                    console.log('🌐 New global wallet stored for all sites');
+                }
+                
+                return {
+                    success: true,
+                    wallet: this.wallet,
+                    isGlobal: true,
+                    isNew: true,
+                    walletAddress: this.wallet.address
+                };
+            }
+
+            throw new WalletError('No wallet system available');
+
+        } catch (error) {
+            console.error('❌ Failed to ensure wallet and profile:', error);
+            return {
+                success: false,
+                error: error.message || 'Failed to ensure wallet and profile'
+            };
+        }
+    }
+
+    /**
+     * Get the current wallet instance
+     * @returns {Promise<{wallet?: object, error?: string}>}
+     */
+    async getWallet() {
+        try {
+            if (this.wallet) {
+                return { wallet: this.wallet };
+            }
+
+            // Try to ensure wallet and profile first
+            const result = await this.ensureWalletAndProfile();
+            if (result.success && result.wallet) {
+                return { wallet: result.wallet };
+            }
+
+            throw new WalletError('No wallet available');
+        } catch (error) {
+            console.error('❌ Failed to get wallet:', error);
+            return { error: error.message || 'Failed to get wallet' };
+        }
+    }
+
+    /**
+     * Get shortened wallet address for display (0x1234...abcd format)
+     * @returns {Promise<string>}
+     */
+    async getWalletShort() {
+        try {
+            const { wallet, error } = await this.getWallet();
+            if (error || !wallet) {
+                return 'No wallet';
+            }
+
+            const address = wallet.address;
+            if (!address || address.length < 10) {
+                return 'Invalid address';
+            }
+
+            return `${address.slice(0, 6)}...${address.slice(-4)}`;
+        } catch (error) {
+            console.error('❌ Failed to get short wallet address:', error);
+            return 'Error';
+        }
     }
 
     /**
@@ -241,7 +418,10 @@ class ZkAffinityAgent {
      */
     async getWalletAddress() {
         if (!this.wallet) {
-            await this.initializeWallet();
+            const result = await this.ensureWalletAndProfile();
+            if (!result.success || !result.wallet) {
+                throw new WalletError('Failed to initialize wallet');
+            }
         }
         return this.wallet.address;
     }
@@ -310,8 +490,13 @@ class ZkAffinityAgent {
 
             this.currentPublisher = publisher;
 
-            // Ensure wallet is initialized
-            const walletAddress = await this.getWalletAddress();
+            // Ensure wallet and profile are initialized (Privy integration)
+            const walletResult = await this.ensureWalletAndProfile();
+            if (!walletResult.success) {
+                throw new WalletError(walletResult.error || 'Failed to initialize wallet');
+            }
+            
+            const walletAddress = walletResult.wallet.address;
 
             // Step 1: Show expanded ad modal
             await this.showExpandedAd(adTag, publisher);
@@ -966,6 +1151,15 @@ class ZkAffinityAgent {
             throw new ZkAffinityAgentError(`Profile update failed: ${error.message}`);
         }
     }
+
+    /**
+     * Update user profile (compatibility method)
+     * @param {Object} profileData - Profile data to update
+     * @returns {Promise<Object>} Updated profile data
+     */
+    async updateUserProfile(profileData) {
+        return await this.updateProfile(profileData);
+    }
 }
 
 // Export for Node.js environment
@@ -995,7 +1189,15 @@ if (typeof window !== 'undefined') {
         window.WalletError = WalletError;
         window.AttestationError = AttestationError;
         
+        // Add debug methods for Privy integration
+        window.zkAgent = window.zkAgent || {};
+        window.zkAgent.getWallet = () => window.zkAffinityAgent.getWallet();
+        window.zkAgent.getWalletShort = () => window.zkAffinityAgent.getWalletShort();
+        window.zkAgent.ensureWalletAndProfile = () => window.zkAffinityAgent.ensureWalletAndProfile();
+        window.zkAgent.getProfile = () => window.zkAffinityAgent.getProfileSummary();
+        
         console.log('🌐 zkAffinityAgent available globally as window.zkAffinityAgent');
+        console.log('🔧 Debug methods available via window.zkAgent');
     } catch (error) {
         console.error('❌ Failed to create zkAffinityAgent singleton:', error);
         console.error('Error details:', error.message, error.stack);

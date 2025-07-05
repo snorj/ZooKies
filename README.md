@@ -101,7 +101,8 @@ Once the server is running:
 
 - **Frontend**: Vanilla HTML, CSS, JavaScript
 - **Backend**: Node.js, Express.js
-- **Database**: SQLite3
+- **Database**: SQLite3, IndexedDB (idb)
+- **Authentication**: Privy (@privy-io/react-auth)
 - **Blockchain**: Ethereum (ethers.js)
 - **Cryptography**: ECDSA signing
 
