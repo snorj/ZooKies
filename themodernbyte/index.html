@@ -149,29 +149,17 @@
         </div>
     </div>
 
-    <!-- Modal Overlay for Ad Interactions -->
-    <div class="ad-modal-overlay" id="adModalOverlay" style="display: none;">
-        <div class="ad-modal" id="adModal">
-            <button class="ad-modal-close" onclick="closeAdModal()">&times;</button>
-            <h2 id="adModalTitle">Advertisement</h2>
-            <div class="modal-content" id="adModalContent">
-                <!-- Ad content will be populated by JavaScript -->
-            </div>
-            <div class="modal-actions">
-                <button class="btn-primary" id="adActionBtn">Visit Site</button>
-                <button class="btn-secondary" onclick="closeAdModal()">Close</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Success/Error Messages Container -->
     <div id="messageContainer"></div>
 
     <!-- Scripts -->
-    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"></script>
-    <script src="../shared/cryptography.js"></script>
-    <script src="../shared/database.js"></script>
-    <script src="../shared/zkAffinityAgent.js"></script>
+    <script src="../lib/ethers/dist/ethers.umd.min.js"></script>
+    <script src="../shared/cryptography-browser.js"></script>
+    <script src="../shared/database-browser.js"></script>
+    <script src="../shared/publisher-keys-browser.js"></script>
+            <script>console.log('🧪 Test script executing before zkAffinityAgent.js');</script>
+        <script src="../shared/zkAffinityAgent.js"></script>
+        <script>console.log('🧪 Test script executing after zkAffinityAgent.js');</script>
     <script src="scripts.js"></script>
 </body>
 </html> 
