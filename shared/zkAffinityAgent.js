@@ -105,6 +105,20 @@ class AttestationError extends ZkAffinityAgentError {
 /**
  * ZkAffinityAgent Singleton Class
  * Manages the complete user journey for ad interactions and attestation creation
+ * 
+ * ⚠️ WALLET IMPLEMENTATION NOTE:
+ * The current wallet implementation is temporary and for demonstration purposes only.
+ * It will be replaced by Privy wallet integration in the production version.
+ * Current limitations:
+ * - Creates ephemeral wallets that don't persist across page refreshes
+ * - Uses basic localStorage for demo purposes
+ * - Does not support real user wallets
+ * 
+ * These limitations will be addressed by the Privy integration which will provide:
+ * - Persistent wallet management
+ * - Secure key storage
+ * - Real user wallet connections
+ * - Cross-session state management
  */
 class ZkAffinityAgent {
     constructor() {
@@ -158,6 +172,15 @@ class ZkAffinityAgent {
 
     /**
      * Initialize wallet using ethers.js - creates random wallet on first interaction
+     * 
+     * ⚠️ TEMPORARY IMPLEMENTATION:
+     * This is a temporary demo implementation that creates ephemeral wallets.
+     * It will be replaced by Privy wallet integration which will:
+     * - Handle persistent wallet management
+     * - Allow users to connect their own wallets
+     * - Manage wallet state across sessions
+     * - Provide a more secure and user-friendly experience
+     * 
      * @returns {Promise<string>} - Wallet address
      */
     async initializeWallet() {
@@ -171,7 +194,8 @@ class ZkAffinityAgent {
                 throw new WalletError('Ethers.js not available. Please include ethers library.');
             }
 
-            // Check localStorage for existing wallet (for testing)
+            // TEMPORARY: Demo-only wallet persistence
+            // This will be replaced by Privy wallet integration
             if (typeof window !== 'undefined') {
                 const storedPrivateKey = localStorage.getItem('zkAffinity_privateKey');
                 const storedAddress = localStorage.getItem('zkAffinity_walletAddress');
@@ -180,12 +204,13 @@ class ZkAffinityAgent {
                     this.wallet = new ethers.Wallet(storedPrivateKey);
                     console.log('🔑 Wallet loaded from localStorage:', this.wallet.address);
                 } else {
-            // Create random wallet for demo purposes
-            this.wallet = ethers.Wallet.createRandom();
-            console.log('🔑 New wallet created:', this.wallet.address);
+                    // Create random wallet for demo purposes only
+                    // This will be replaced by Privy wallet connection
+                    this.wallet = ethers.Wallet.createRandom();
+                    console.log('🔑 New wallet created:', this.wallet.address);
                 }
             } else {
-                // Node.js environment - create random wallet
+                // Node.js environment - create random wallet for testing
                 this.wallet = ethers.Wallet.createRandom();
                 console.log('🔑 New wallet created (Node.js):', this.wallet.address);
             }
@@ -223,6 +248,12 @@ class ZkAffinityAgent {
 
     /**
      * Generate new wallet (for demo reset purposes)
+     * 
+     * ⚠️ TEMPORARY IMPLEMENTATION:
+     * This is a demo-only feature that will be removed when Privy wallet integration
+     * is implemented. In the Privy implementation, wallet management will be handled
+     * by Privy's secure wallet infrastructure.
+     * 
      * @returns {Promise<string>} - New wallet address
      */
     async generateNewWallet() {
@@ -232,6 +263,7 @@ class ZkAffinityAgent {
             }
 
             const oldAddress = this.wallet ? this.wallet.address : 'none';
+            // Demo-only: Create random wallet
             this.wallet = ethers.Wallet.createRandom();
             this.profileSigned = false;
             this.attestations = [];
