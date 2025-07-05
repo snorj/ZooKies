@@ -50,6 +50,7 @@ app.use((req, res, next) => {
 app.use('/themodernbyte', express.static(path.join(__dirname, 'themodernbyte')));
 app.use('/smartlivingguide', express.static(path.join(__dirname, 'smartlivingguide')));
 app.use('/shared', express.static(path.join(__dirname, 'shared')));
+app.use('/lib', express.static(path.join(__dirname, 'node_modules')));
 
 /**
  * Basic Routes
@@ -104,6 +105,35 @@ app.get('/api/health', async (req, res) => {
       error: error.message,
       timestamp: new Date().toISOString()
     });
+  }
+});
+
+/**
+ * Get Attestations Endpoint
+ * GET /api/attestations?wallet={address}
+ * Retrieves all attestations for a wallet address
+ */
+app.get('/api/attestations', async (req, res) => {
+  try {
+    const { wallet } = req.query;
+    
+    if (!wallet) {
+      return res.status(400).json({ error: 'Wallet address is required' });
+    }
+
+    console.log(`📋 Attestations request for wallet: ${wallet}`);
+    
+    const attestations = await dbManager.getAllAttestations(wallet);
+    
+    console.log(`✅ Found ${attestations.length} attestations`);
+    
+    res.json({ 
+      success: true, 
+      attestations: attestations 
+    });
+  } catch (error) {
+    console.error('❌ Error fetching attestations:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
