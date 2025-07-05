@@ -200,50 +200,103 @@ class ZkAffinityAgent {
      */
     async ensureWalletAndProfile() {
         try {
-            console.log('🔗 Ensuring wallet and profile with Privy...');
+            console.log('🔗 Ensuring global wallet and profile...');
 
-            // Check if Privy modules are loaded
-            if (!profileStoreModule) {
-                console.warn('⚠️ Privy modules not loaded, falling back to temporary wallet');
-                const walletAddress = await this.initializeWallet();
-                return {
-                    success: true,
-                    wallet: this.wallet,
-                    fallback: true,
-                    walletAddress
-                };
+            // Try to use the global Privy wallet first
+            if (typeof window !== 'undefined' && window.privyModule) {
+                try {
+                    console.log('🌐 Using global Privy wallet system');
+                    const { getEmbeddedWallet, createSignedProfileClaim } = window.privyModule;
+                    
+                    // Get or create the global wallet
+                    const walletResult = await getEmbeddedWallet();
+                    if (walletResult.wallet) {
+                        this.wallet = walletResult.wallet;
+                        this.isInitialized = true;
+                        
+                        console.log('✅ Global wallet ensured:', this.wallet.address);
+                        
+                        // Ensure profile is signed
+                        if (!this.profileSigned) {
+                            const claimResult = await createSignedProfileClaim();
+                            if (claimResult.success) {
+                                this.profileSigned = true;
+                                console.log('📋 Profile claim signed with global wallet');
+                            }
+                        }
+                        
+                        return {
+                            success: true,
+                            wallet: this.wallet,
+                            isGlobal: true,
+                            walletAddress: this.wallet.address
+                        };
+                    }
+                } catch (privyError) {
+                    console.warn('⚠️ Global Privy wallet failed:', privyError.message);
+                }
             }
 
-            // Use Privy profile store to ensure wallet and profile
-            const result = await profileStoreModule.ensureWalletAndProfile();
-            
-            if (result.success && result.profile) {
-                // Store wallet reference for compatibility
-                this.wallet = { address: result.profile.wallet };
-                this.profileSigned = true;
+            // Fallback: Check if we have existing global wallet data
+            if (typeof window !== 'undefined' && window.localStorage) {
+                const globalWalletKey = 'zookies_global_wallet';
+                const existingWallet = localStorage.getItem(globalWalletKey);
+                
+                if (existingWallet) {
+                    try {
+                        const walletData = JSON.parse(existingWallet);
+                        if (window.ethers && walletData.privateKey) {
+                            this.wallet = new window.ethers.Wallet(walletData.privateKey);
+                            this.isInitialized = true;
+                            
+                            console.log('✅ Restored global wallet:', this.wallet.address);
+                            return {
+                                success: true,
+                                wallet: this.wallet,
+                                isGlobal: true,
+                                walletAddress: this.wallet.address
+                            };
+                        }
+                    } catch (parseError) {
+                        console.warn('⚠️ Failed to parse global wallet data:', parseError.message);
+                    }
+                }
+            }
+
+            // Final fallback: Create new global wallet
+            console.log('🔄 Creating new global wallet');
+            if (window.ethers) {
+                this.wallet = window.ethers.Wallet.createRandom();
                 this.isInitialized = true;
                 
-                console.log('✅ Wallet and profile ensured:', result.profile.wallet);
+                // Store globally for all sites
+                if (typeof localStorage !== 'undefined') {
+                    const globalWalletKey = 'zookies_global_wallet';
+                    localStorage.setItem(globalWalletKey, JSON.stringify({
+                        address: this.wallet.address,
+                        privateKey: this.wallet.privateKey,
+                        createdAt: Date.now(),
+                        version: '1.0'
+                    }));
+                    console.log('🌐 New global wallet stored for all sites');
+                }
+                
                 return {
                     success: true,
                     wallet: this.wallet,
-                    profile: result.profile
+                    isGlobal: true,
+                    isNew: true,
+                    walletAddress: this.wallet.address
                 };
-            } else {
-                throw new WalletError(result.error || 'Failed to ensure wallet and profile');
             }
+
+            throw new WalletError('No wallet system available');
 
         } catch (error) {
             console.error('❌ Failed to ensure wallet and profile:', error);
-            
-            // Fallback to temporary wallet for development
-            console.log('🔄 Falling back to temporary wallet implementation');
-            const walletAddress = await this.initializeWallet();
             return {
-                success: true,
-                wallet: this.wallet,
-                fallback: true,
-                walletAddress
+                success: false,
+                error: error.message || 'Failed to ensure wallet and profile'
             };
         }
     }
@@ -1097,6 +1150,15 @@ class ZkAffinityAgent {
             console.error('❌ Profile update failed:', error.message);
             throw new ZkAffinityAgentError(`Profile update failed: ${error.message}`);
         }
+    }
+
+    /**
+     * Update user profile (compatibility method)
+     * @param {Object} profileData - Profile data to update
+     * @returns {Promise<Object>} Updated profile data
+     */
+    async updateUserProfile(profileData) {
+        return await this.updateProfile(profileData);
     }
 }
 

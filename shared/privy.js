@@ -1,5 +1,40 @@
-import { PrivyProvider, useWallets } from '@privy-io/react-auth';
-import { openDB } from 'idb';
+// Browser-compatible Privy integration for ZooKies
+// Falls back to temporary wallet generation when Privy modules are not available
+
+// Check if we're in a browser environment
+const isBrowser = typeof window !== 'undefined';
+
+// Try to import Privy modules, fall back gracefully if not available
+let PrivyProvider, useWallets;
+let privyAvailable = false;
+
+try {
+    // Dynamic import for Privy modules (will fail gracefully)
+    if (isBrowser) {
+        // Note: These imports will fail in most cases since Privy isn't installed
+        // We'll catch the error and use fallback wallet generation
+        import('@privy-io/react-auth').then(module => {
+            PrivyProvider = module.PrivyProvider;
+            useWallets = module.useWallets;
+            privyAvailable = true;
+            console.log('Privy modules loaded successfully');
+        }).catch(err => {
+            console.warn('Privy modules not available, using fallback wallet generation:', err.message);
+            privyAvailable = false;
+        });
+    }
+} catch (error) {
+    console.warn('Privy import failed, using fallback wallet generation:', error.message);
+    privyAvailable = false;
+}
+
+// Import IndexedDB for storage
+let openDB;
+if (isBrowser && window.idb) {
+    openDB = window.idb.openDB;
+} else {
+    console.warn('IndexedDB not available');
+}
 
 // Constants
 const PRIVY_APP_ID = 'zookies-dev'; // Sandbox environment app ID
@@ -7,8 +42,40 @@ const DB_NAME = 'zookies_privy_cache';
 const DB_VERSION = 1;
 const WALLET_STORE = 'profiles';
 
+// Global wallet storage key - same across all sites
+const GLOBAL_WALLET_KEY = 'zookies_global_wallet';
+
+// Fallback wallet generation using ethers.js
+function generateTemporaryWallet() {
+    if (typeof window !== 'undefined' && window.ethers) {
+        const wallet = window.ethers.Wallet.createRandom();
+        console.log('Generated new global wallet:', wallet.address);
+        return {
+            address: wallet.address,
+            privateKey: wallet.privateKey,
+            getEthereumProvider: () => ({
+                request: async ({ method, params }) => {
+                    if (method === 'personal_sign') {
+                        const [message, address] = params;
+                        return wallet.signMessage(message);
+                    }
+                    throw new Error(`Unsupported method: ${method}`);
+                }
+            }),
+            walletClientType: 'zookies-global',
+            isConnected: true
+        };
+    }
+    throw new Error('Ethers.js not available for wallet generation');
+}
+
 // IndexedDB setup
 async function initializeDB() {
+    if (!openDB) {
+        console.warn('IndexedDB not available, using in-memory storage');
+        return null;
+    }
+    
     try {
         const db = await openDB(DB_NAME, DB_VERSION, {
             upgrade(db) {
@@ -20,7 +87,7 @@ async function initializeDB() {
         return db;
     } catch (error) {
         console.error('Failed to initialize IndexedDB:', error);
-        throw new Error('Failed to initialize profile database');
+        return null;
     }
 }
 
@@ -49,6 +116,11 @@ export const PRIVY_CONFIG = privyConfig;
 export async function initPrivy() {
     try {
         await initializeDB();
+        
+        if (!privyAvailable) {
+            console.log('Privy not available, using global wallet generation');
+        }
+        
         return { success: true };
     } catch (error) {
         console.error('Failed to initialize Privy:', error);
@@ -60,19 +132,72 @@ export async function initPrivy() {
 }
 
 /**
- * Get the embedded wallet instance
+ * Get or create the global wallet that persists across all sites
  * @returns {Promise<{wallet: object|null, error?: string}>}
  */
 export async function getEmbeddedWallet() {
     try {
-        const { wallets } = useWallets();
-        const embeddedWallet = wallets.find(wallet => wallet.walletClientType === 'privy');
-        
-        if (!embeddedWallet) {
-            throw new Error('No embedded wallet found');
+        // Try to use Privy if available
+        if (privyAvailable && useWallets) {
+            const { wallets } = useWallets();
+            const embeddedWallet = wallets.find(wallet => wallet.walletClientType === 'privy');
+            
+            if (embeddedWallet) {
+                console.log('Using Privy embedded wallet:', embeddedWallet.address);
+                return { wallet: embeddedWallet };
+            }
         }
         
-        return { wallet: embeddedWallet };
+        // Fall back to global wallet generation
+        console.log('Using global wallet generation for ZooKies');
+        
+        // Try to get existing global wallet from localStorage
+        if (typeof localStorage !== 'undefined') {
+            const existingWallet = localStorage.getItem(GLOBAL_WALLET_KEY);
+            
+            if (existingWallet) {
+                const walletData = JSON.parse(existingWallet);
+                console.log('Using existing global wallet:', walletData.address);
+                
+                // Recreate wallet from stored private key
+                if (window.ethers) {
+                    const wallet = new window.ethers.Wallet(walletData.privateKey);
+                    return {
+                        wallet: {
+                            address: wallet.address,
+                            privateKey: wallet.privateKey,
+                            getEthereumProvider: () => ({
+                                request: async ({ method, params }) => {
+                                    if (method === 'personal_sign') {
+                                        const [message, address] = params;
+                                        return wallet.signMessage(message);
+                                    }
+                                    throw new Error(`Unsupported method: ${method}`);
+                                }
+                            }),
+                            walletClientType: 'zookies-global',
+                            isConnected: true
+                        }
+                    };
+                }
+            }
+        }
+        
+        // Generate new global wallet if none exists
+        const newWallet = generateTemporaryWallet();
+        
+        // Store globally for all sites
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem(GLOBAL_WALLET_KEY, JSON.stringify({
+                address: newWallet.address,
+                privateKey: newWallet.privateKey,
+                createdAt: Date.now(),
+                version: '1.0'
+            }));
+            console.log('Global wallet stored for all ZooKies sites');
+        }
+        
+        return { wallet: newWallet };
     } catch (error) {
         console.error('Failed to get embedded wallet:', error);
         return {
@@ -83,7 +208,7 @@ export async function getEmbeddedWallet() {
 }
 
 /**
- * Create a signed profile claim
+ * Create a signed profile claim for the global wallet
  * @returns {Promise<{success: boolean, claim?: object, error?: string}>}
  */
 export async function createSignedProfileClaim() {
@@ -94,7 +219,7 @@ export async function createSignedProfileClaim() {
         }
 
         const timestamp = new Date().toISOString();
-        const message = `I confirm this wallet owns my zkAffinity profile. Timestamp: ${timestamp}`;
+        const message = `I confirm this wallet owns my ZooKies interest profile across all sites. Timestamp: ${timestamp}`;
         
         const provider = await wallet.getEthereumProvider();
         const signature = await provider.request({
@@ -110,12 +235,16 @@ export async function createSignedProfileClaim() {
             },
             attestations: [],
             selfProof: null,
-            createdAt: Date.now()
+            createdAt: Date.now(),
+            version: '1.0'
         };
 
-        // Store in IndexedDB
+        // Store in IndexedDB if available
         const db = await initializeDB();
-        await db.put(WALLET_STORE, claim);
+        if (db) {
+            await db.put(WALLET_STORE, claim);
+            console.log('Global profile claim stored in IndexedDB');
+        }
 
         return { success: true, claim };
     } catch (error) {
@@ -128,7 +257,7 @@ export async function createSignedProfileClaim() {
 }
 
 /**
- * Get the current profile from storage
+ * Get the current global profile from storage
  * @returns {Promise<{profile?: object, error?: string}>}
  */
 export async function getProfile() {
@@ -139,8 +268,11 @@ export async function getProfile() {
         }
 
         const db = await initializeDB();
-        const profile = await db.get(WALLET_STORE, wallet.address);
+        if (!db) {
+            return { profile: null };
+        }
         
+        const profile = await db.get(WALLET_STORE, wallet.address);
         return { profile };
     } catch (error) {
         console.error('Failed to get profile:', error);
@@ -161,7 +293,9 @@ export async function getWalletDebugInfo() {
 
         return {
             address: wallet.address,
-            provider: await wallet.getEthereumProvider()
+            provider: await wallet.getEthereumProvider(),
+            type: wallet.walletClientType || 'unknown',
+            isGlobal: wallet.walletClientType === 'zookies-global'
         };
     } catch (error) {
         console.error('Failed to get wallet debug info:', error);
@@ -170,7 +304,14 @@ export async function getWalletDebugInfo() {
 }
 
 // Expose debug helper on window object
-if (process.env.NODE_ENV !== 'production') {
+if (typeof window !== 'undefined') {
     window.zkAgent = window.zkAgent || {};
     window.zkAgent.getWallet = getWalletDebugInfo;
+    window.zkAgent.privyAvailable = () => privyAvailable;
+    window.zkAgent.clearGlobalWallet = () => {
+        if (typeof localStorage !== 'undefined') {
+            localStorage.removeItem(GLOBAL_WALLET_KEY);
+            console.log('Global wallet cleared - will regenerate on next use');
+        }
+    };
 } 

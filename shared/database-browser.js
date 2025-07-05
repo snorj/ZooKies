@@ -7,6 +7,16 @@
 // Use global idb library (loaded via UMD)
 const { openDB } = window.idb || {};
 
+// Global database configuration - shared across all ZooKies sites
+const DB_NAME = 'zookies_global_db';  // Global database name
+const DB_VERSION = 2;  // Incremented for global migration
+
+const STORES = {
+    attestations: 'attestations',
+    profiles: 'profiles',
+    publishers: 'publishers'
+};
+
 /**
  * Custom error classes for database operations
  */
@@ -30,8 +40,8 @@ class ValidationError extends DatabaseError {
  */
 class BrowserDatabaseManager {
     constructor() {
-        this.dbName = 'zookies_privy_cache';
-        this.version = 2; // Incremented to support new schema
+        this.dbName = DB_NAME;
+        this.version = DB_VERSION; // Incremented to support new schema
         this.db = null;
     }
 
@@ -43,19 +53,20 @@ class BrowserDatabaseManager {
         try {
             this.db = await openDB(this.dbName, this.version, {
                 upgrade(db, oldVersion, newVersion, transaction) {
-                    console.log(`Upgrading database from version ${oldVersion} to ${newVersion}`);
+                    console.log(`Upgrading global ZooKies database from version ${oldVersion} to ${newVersion}`);
 
-                    // Profiles store - for wallet-bound profiles
-                    if (!db.objectStoreNames.contains('profiles')) {
-                        const profileStore = db.createObjectStore('profiles', { keyPath: 'wallet' });
+                    // Global profiles store - shared across all ZooKies publisher sites
+                    if (!db.objectStoreNames.contains(STORES.profiles)) {
+                        const profileStore = db.createObjectStore(STORES.profiles, { keyPath: 'wallet' });
                         profileStore.createIndex('createdAt', 'createdAt');
                         profileStore.createIndex('lastUpdated', 'lastUpdated');
                         profileStore.createIndex('isActive', 'isActive');
+                        console.log('✅ Created global profiles store for cross-site persistence');
                     }
 
-                    // Attestations store - for client-side attestation cache
-                    if (!db.objectStoreNames.contains('attestations')) {
-                        const attestationStore = db.createObjectStore('attestations', { 
+                    // Global attestations store - accumulates interests from all publisher sites
+                    if (!db.objectStoreNames.contains(STORES.attestations)) {
+                        const attestationStore = db.createObjectStore(STORES.attestations, { 
                             keyPath: 'id',
                             autoIncrement: true 
                         });
@@ -64,6 +75,7 @@ class BrowserDatabaseManager {
                         attestationStore.createIndex('timestamp', 'timestamp');
                         attestationStore.createIndex('publisher', 'publisher');
                         attestationStore.createIndex('nonce', 'nonce', { unique: true });
+                        console.log('✅ Created global attestations store for cross-site interests');
                     }
 
                     // Sessions store - for wallet session persistence
@@ -83,7 +95,7 @@ class BrowserDatabaseManager {
                 }
             });
             
-            console.log('Browser database initialized successfully');
+            console.log('✅ Global ZooKies database initialized successfully - shared across all sites');
         } catch (error) {
             console.error('Failed to initialize browser database:', error);
             throw new DatabaseError(`Failed to initialize browser database: ${error.message}`);
@@ -128,8 +140,8 @@ class BrowserDatabaseManager {
                 version: 1
             };
 
-            await this.db.put('profiles', enhancedProfile);
-            console.log('Profile stored in browser database:', profile.wallet);
+            await this.db.put(STORES.profiles, enhancedProfile);
+            console.log('Profile stored in global database:', profile.wallet);
         } catch (error) {
             if (error instanceof ValidationError) {
             throw error;
@@ -151,7 +163,7 @@ class BrowserDatabaseManager {
                 throw new ValidationError('Wallet address is required');
             }
 
-            const profile = await this.db.get('profiles', walletAddress);
+            const profile = await this.db.get(STORES.profiles, walletAddress);
             return profile || null;
         } catch (error) {
             if (error instanceof ValidationError) {
@@ -197,8 +209,8 @@ class BrowserDatabaseManager {
                 verified: false // Will be set to true after verification
             };
 
-            const id = await this.db.add('attestations', enhancedAttestation);
-            console.log('Attestation stored in browser database with ID:', id);
+            const id = await this.db.add(STORES.attestations, enhancedAttestation);
+            console.log('Attestation stored in global database with ID:', id);
             return id;
         } catch (error) {
             if (error instanceof ValidationError) {
@@ -222,8 +234,8 @@ class BrowserDatabaseManager {
                 throw new ValidationError('Wallet address is required');
             }
 
-            const tx = this.db.transaction('attestations', 'readonly');
-            const store = tx.objectStore('attestations');
+            const tx = this.db.transaction(STORES.attestations, 'readonly');
+            const store = tx.objectStore(STORES.attestations);
             const index = store.index('walletAddress');
             
             let attestations = await index.getAll(walletAddress);
@@ -449,6 +461,185 @@ class BrowserDatabaseManager {
             this.db.close();
             this.db = null;
             console.log('Browser database connection closed');
+        }
+    }
+
+    /**
+     * Verify and store attestation (browser implementation)
+     * @param {Object} attestation - Attestation object to verify and store
+     * @returns {Promise<number>} - Attestation ID
+     */
+    async verifyAndStoreAttestation(attestation) {
+        await this.ensureInitialized();
+        
+        try {
+            // Basic validation (browser-side doesn't do cryptographic verification)
+            if (!attestation || typeof attestation !== 'object') {
+                throw new ValidationError('Attestation must be a valid object');
+            }
+
+            const requiredFields = ['tag', 'timestamp', 'nonce', 'signature', 'publisher', 'user_wallet'];
+            for (const field of requiredFields) {
+                if (!attestation[field]) {
+                    throw new ValidationError(`Missing required field: ${field}`);
+                }
+            }
+
+            // Store the attestation with verification flag
+            const enhancedAttestation = {
+                ...attestation,
+                walletAddress: attestation.user_wallet,
+                verified: true, // Browser assumes valid (real verification would be server-side)
+                storedAt: Date.now()
+            };
+
+            const id = await this.db.add('attestations', enhancedAttestation);
+            console.log('Attestation verified and stored with ID:', id);
+            return id;
+        } catch (error) {
+            if (error instanceof ValidationError) {
+                throw error;
+            }
+            throw new DatabaseError(`Failed to verify and store attestation: ${error.message}`);
+        }
+    }
+
+    /**
+     * Get all attestations for a wallet address
+     * @param {string} walletAddress - Wallet address
+     * @returns {Promise<Array>} - Array of attestations
+     */
+    async getAllAttestations(walletAddress) {
+        await this.ensureInitialized();
+        
+        try {
+            if (!walletAddress || typeof walletAddress !== 'string') {
+                throw new ValidationError('Wallet address is required');
+            }
+
+            const tx = this.db.transaction('attestations', 'readonly');
+            const store = tx.objectStore('attestations');
+            const index = store.index('walletAddress');
+            
+            const attestations = await index.getAll(walletAddress);
+            return attestations.sort((a, b) => b.timestamp - a.timestamp);
+        } catch (error) {
+            if (error instanceof ValidationError) {
+                throw error;
+            }
+            throw new DatabaseError(`Failed to get all attestations: ${error.message}`);
+        }
+    }
+
+    /**
+     * Update user profile (browser implementation)
+     * @param {string} walletAddress - Wallet address
+     * @param {Object} profileData - Profile data to update
+     * @returns {Promise<Object>} - Updated profile
+     */
+    async updateUserProfile(walletAddress, profileData) {
+        await this.ensureInitialized();
+        
+        try {
+            if (!walletAddress || typeof walletAddress !== 'string') {
+                throw new ValidationError('Wallet address is required');
+            }
+
+            if (!profileData || typeof profileData !== 'object') {
+                throw new ValidationError('Profile data must be a valid object');
+            }
+
+            // Get existing profile or create new one
+            let existingProfile = await this.getProfile(walletAddress);
+            
+            if (!existingProfile) {
+                existingProfile = {
+                    wallet: walletAddress,
+                    createdAt: Date.now(),
+                    attestations: [],
+                    interests: {},
+                    isActive: true
+                };
+            }
+
+            // Merge profile data
+            const updatedProfile = {
+                ...existingProfile,
+                ...profileData,
+                wallet: walletAddress, // Ensure wallet address doesn't change
+                lastUpdated: Date.now()
+            };
+
+            // Store updated profile
+            await this.storeProfile(updatedProfile);
+            console.log('User profile updated successfully for:', walletAddress);
+            
+            return updatedProfile;
+        } catch (error) {
+            if (error instanceof ValidationError) {
+                throw error;
+            }
+            throw new DatabaseError(`Failed to update user profile: ${error.message}`);
+        }
+    }
+
+    /**
+     * Initialize database (compatibility method for zkAffinityAgent)
+     * @returns {Promise<void>}
+     */
+    async initializeDatabase() {
+        await this.ensureInitialized();
+        console.log('Browser database initialization completed');
+    }
+
+    /**
+     * Reset user profile (delete all data for a wallet)
+     * @param {string} walletAddress - Wallet address
+     * @returns {Promise<Object>} - Reset result
+     */
+    async resetUserProfile(walletAddress) {
+        await this.ensureInitialized();
+        
+        try {
+            if (!walletAddress || typeof walletAddress !== 'string') {
+                throw new ValidationError('Wallet address is required');
+            }
+
+            // Count items before deletion
+            const attestations = await this.getAllAttestations(walletAddress);
+            const profile = await this.getProfile(walletAddress);
+            
+            // Delete attestations
+            const tx = this.db.transaction(['attestations', 'profiles'], 'readwrite');
+            const attestationStore = tx.objectStore('attestations');
+            const profileStore = tx.objectStore('profiles');
+            
+            // Delete all attestations for this wallet
+            const attestationIndex = attestationStore.index('walletAddress');
+            const attestationKeys = await attestationIndex.getAllKeys(walletAddress);
+            for (const key of attestationKeys) {
+                await attestationStore.delete(key);
+            }
+            
+            // Delete profile
+            await profileStore.delete(walletAddress);
+            
+            await tx.done;
+            
+            const result = {
+                success: true,
+                attestationsDeleted: attestations.length,
+                profileDeleted: profile ? 1 : 0,
+                walletAddress
+            };
+            
+            console.log(`Reset complete for ${walletAddress}:`, result);
+            return result;
+        } catch (error) {
+            if (error instanceof ValidationError) {
+                throw error;
+            }
+            throw new DatabaseError(`Failed to reset user profile: ${error.message}`);
         }
     }
 }

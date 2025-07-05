@@ -24,8 +24,12 @@ document.addEventListener('DOMContentLoaded', async function() {
             throw new Error('zkAffinityAgent not available');
         }
         
-        await zkAgent.initializeWallet();
-        console.log('zkAffinityAgent initialized successfully');
+        // Use global wallet system instead of site-specific wallet
+        const walletResult = await zkAgent.ensureWalletAndProfile();
+        if (!walletResult.success) {
+            throw new Error('Failed to initialize global wallet: ' + walletResult.error);
+        }
+        console.log('✅ Global wallet initialized:', walletResult.isGlobal ? 'Global' : 'Fallback');
         
         // Set up event listeners
         setupEventListeners();

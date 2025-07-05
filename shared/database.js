@@ -5,11 +5,12 @@
  * Now includes IndexedDB wrapper for browser-side profile storage
  */
 
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
-const { v4: uuidv4 } = require('uuid');
-const { PublisherSigner } = require('./cryptography');
-const { PUBLISHER_KEYS } = require('./publisher-keys');
+import sqlite3Package from 'sqlite3';
+const sqlite3 = sqlite3Package.verbose();
+import path from 'path';
+import { v4 as uuidv4 } from 'uuid';
+import { PublisherSigner } from './cryptography.js';
+import { PUBLISHER_KEYS } from './publisher-keys.js';
 
 // Browser-side IndexedDB support
 let idb = null;
@@ -774,8 +775,8 @@ class EnhancedDatabaseManager extends DatabaseManager {
     }
 }
 
-module.exports = { 
-    DatabaseManager: EnhancedDatabaseManager,
+export { 
+    EnhancedDatabaseManager as DatabaseManager,
     IndexedDBWrapper,
     DatabaseError,
     ValidationError
