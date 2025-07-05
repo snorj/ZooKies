@@ -1,0 +1,486 @@
+/* Ad Container Styles */
+.ad-container {
+    margin: 2rem 0;
+    padding: 1rem;
+    background: #f8f9fa;
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    min-height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.ad-container.has-ad {
+    background: white;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.ad-container.loading {
+    background: #f8f9fa;
+    border: 2px solid #007bff;
+    box-shadow: 0 0 15px rgba(0,123,255,0.3);
+}
+
+.ad-container.error {
+    background: #fff5f5;
+    border: 2px solid #e53e3e;
+    box-shadow: 0 0 15px rgba(229,62,62,0.3);
+}
+
+.ad-container.no-ads {
+    background: #f7fafc;
+    border: 2px solid #9ca3af;
+    opacity: 0.8;
+}
+
+.ad-container::before {
+    content: "📢 Sponsored Content";
+    position: absolute;
+    top: -10px;
+    left: 15px;
+    background: #6c757d;
+    color: white;
+    padding: 0.2rem 0.8rem;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    z-index: 10;
+}
+
+.ad-container.loading::before {
+    content: "⏳ Loading Ad";
+    background: #007bff;
+    animation: pulse 1.5s infinite;
+}
+
+.ad-container.error::before {
+    content: "❌ Ad Error";
+    background: #e53e3e;
+}
+
+.ad-container.no-ads::before {
+    content: "💭 No Ads";
+    background: #9ca3af;
+}
+
+/* Primary Ad Container */
+.primary-ad {
+    margin: 2.5rem 0;
+    min-height: 250px;
+}
+
+/* Sidebar Ad Container */
+.sidebar-ad {
+    margin: 1.5rem 0;
+    min-height: 150px;
+}
+
+/* Ad Placeholder */
+.ad-placeholder {
+    text-align: center;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.ad-placeholder p {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+/* Ad Card Styles */
+.ad-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.ad-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+}
+
+.ad-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, transparent 100%);
+    pointer-events: none;
+}
+
+/* Ad Proof Badge */
+.ad-proof-badge {
+    position: absolute;
+    top: -8px;
+    right: 15px;
+    background: #10b981;
+    color: white;
+    padding: 0.3rem 0.8rem;
+    border-radius: 15px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(16,185,129,0.4);
+}
+
+.ad-proof-badge.verified {
+    background: #10b981;
+    animation: verified-glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes verified-glow {
+    from { box-shadow: 0 2px 8px rgba(16,185,129,0.4); }
+    to { box-shadow: 0 4px 15px rgba(16,185,129,0.7); }
+}
+
+/* Ad Elements */
+.ad-emoji {
+    font-size: 2.5rem;
+    display: block;
+    margin-bottom: 1rem;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+}
+
+.ad-headline {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 0.8rem;
+    line-height: 1.3;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.ad-description {
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+    opacity: 0.95;
+    line-height: 1.4;
+}
+
+.ad-cta {
+    display: inline-block;
+    background: rgba(255,255,255,0.9);
+    color: #333;
+    padding: 0.8rem 2rem;
+    border-radius: 25px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom: 1rem;
+}
+
+.ad-cta:hover {
+    background: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    color: #333;
+    text-decoration: none;
+}
+
+.zk-verified {
+    font-size: 0.75rem;
+    opacity: 0.8;
+    margin-top: 0.5rem;
+    font-style: italic;
+}
+
+/* Theme-specific ad card variants */
+.ad-card.finance {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.ad-card.travel {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+}
+
+.ad-card.privacy {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+}
+
+.ad-card.gaming {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.ad-card.technology {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+}
+
+/* Ad Loading States */
+.ad-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    color: #007bff;
+    font-weight: 500;
+    font-size: 1rem;
+}
+
+.ad-loading::before {
+    content: "⏳";
+    animation: spin 2s linear infinite;
+}
+
+.ad-error {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    color: #e53e3e;
+    font-weight: 500;
+    font-size: 1rem;
+}
+
+.ad-error::before {
+    content: "❌";
+}
+
+.ad-no-ads {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    color: #6b7280;
+    font-weight: 500;
+    font-size: 1rem;
+    font-style: italic;
+}
+
+.ad-no-ads::before {
+    content: "💭";
+}
+
+/* Animations */
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Ad Content */
+.ad-emoji {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 1rem;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.ad-headline {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    line-height: 1.2;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.ad-description {
+    font-size: 1.1rem;
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+    opacity: 0.95;
+}
+
+.ad-cta {
+    display: inline-block;
+    background: rgba(255,255,255,0.2);
+    color: white;
+    padding: 0.8rem 2rem;
+    border-radius: 25px;
+    text-decoration: none;
+    font-weight: 600;
+    border: 2px solid rgba(255,255,255,0.3);
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.ad-cta:hover {
+    background: rgba(255,255,255,0.3);
+    color: white;
+    border-color: rgba(255,255,255,0.5);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+/* Ad Loading States */
+.ad-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.ad-loading::before {
+    content: '';
+    width: 20px;
+    height: 20px;
+    border: 2px solid #dee2e6;
+    border-top-color: #6c757d;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.ad-error {
+    color: #e74c3c;
+    text-align: center;
+    font-style: italic;
+}
+
+.ad-no-match {
+    color: #6c757d;
+    text-align: center;
+    font-style: italic;
+    opacity: 0.8;
+}
+
+/* Ad Proof Badge */
+.ad-proof-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(255,255,255,0.2);
+    color: white;
+    padding: 0.3rem 0.8rem;
+    border-radius: 15px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.3);
+}
+
+.ad-proof-badge.verified {
+    background: rgba(46,204,113,0.8);
+    border-color: rgba(46,204,113,0.5);
+}
+
+/* Animation Keyframes */
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes adSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes adPulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.02);
+    }
+}
+
+.ad-card {
+    animation: adSlideIn 0.5s ease-out;
+}
+
+.ad-card:hover {
+    animation: adPulse 0.3s ease-in-out;
+}
+
+/* ZK Proof Verification Indicator */
+.zk-verified {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(46,204,113,0.2);
+    color: #27ae60;
+    padding: 0.3rem 0.8rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-top: 1rem;
+}
+
+.zk-verified::before {
+    content: '🔐';
+    font-size: 1rem;
+}
+
+/* Multiple Ad Slots (Future Extension) */
+.ad-slots {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin: 2rem 0;
+}
+
+/* Responsive Ad Styles */
+@media (max-width: 768px) {
+    .ad-container {
+        margin: 1.5rem 0;
+        padding: 0.8rem;
+        min-height: 100px;
+    }
+    
+    .ad-card {
+        padding: 1.2rem;
+        max-width: 100%;
+    }
+    
+    .ad-headline {
+        font-size: 1.2rem;
+    }
+    
+    .ad-description {
+        font-size: 0.9rem;
+    }
+    
+    .ad-cta {
+        padding: 0.7rem 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .ad-card {
+        padding: 1rem;
+    }
+    
+    .ad-headline {
+        font-size: 1.2rem;
+    }
+    
+    .ad-description {
+        font-size: 1rem;
+    }
+    
+    .ad-cta {
+        padding: 0.6rem 1.5rem;
+        font-size: 0.9rem;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .ad-container {
+        display: none;
+    }
+} 
