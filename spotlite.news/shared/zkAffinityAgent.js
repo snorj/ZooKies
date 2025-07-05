@@ -1272,59 +1272,102 @@ class ZkAffinityAgent {
 
     /**
      * Request targeted ad based on ZK proof verification
+     * NEW IMPLEMENTATION - Integrates with spotlite.news adRenderer.js
      * @param {Object} options - Ad request options
-     * @param {string} options.tag - Target demographic tag
+     * @param {string} options.tag - Target demographic tag (finance, travel, privacy, gaming, technology)
      * @param {number} options.threshold - Minimum attestation threshold
      * @param {boolean} options.requiresSelfProof - Whether user must prove their own attestations
-     * @returns {Promise<Object>} Ad targeting result
+     * @returns {Promise<Object>} Structured result: { success, ad: { content, tag, proofVerified }, proof: { publicSignals, verified } }
      */
-    async requestAd({ tag = "defi", threshold = 2, requiresSelfProof = false } = {}) {
+    async requestAd({ tag = "finance", threshold = 2, requiresSelfProof = false } = {}) {
         try {
             console.log(`🎯 Requesting targeted ad for ${tag} (threshold: ${threshold})`);
 
+            // Validate input parameters
+            const validTags = ['finance', 'travel', 'privacy', 'gaming', 'technology'];
+            if (!validTags.includes(tag)) {
+                throw new Error(`Invalid tag: ${tag}. Supported tags: ${validTags.join(', ')}`);
+            }
+
+            if (typeof threshold !== 'number' || threshold < 1) {
+                throw new Error(`Invalid threshold: ${threshold}. Must be a positive number`);
+            }
+
             // Generate proof for targeting condition
+            console.log('🔐 Generating ZK proof...');
             const proofResult = await this.prove({ tag, threshold, requiresSelfProof });
 
-            if (proofResult.success && proofResult.verification.valid) {
-                // User qualifies - return targeted ad
+            // Extract proof verification status
+            const isProofValid = proofResult.success && proofResult.verification && proofResult.verification.valid;
+            
+            if (isProofValid) {
+                // User qualifies - return successful result with ad content reference
                 console.log('✅ User qualifies for targeted ad');
                 
-                const adContent = await this.loadAdContent(tag);
-                
                 return {
-                    qualified: true,
-                    adContent,
-                    proofDetails: proofResult,
-                    targetingReason: `Proven interest in ${tag} with ${proofResult.attestationCount} attestations`,
-                    timestamp: Date.now()
+                    success: true,
+                    ad: {
+                        content: null, // Will be loaded by adRenderer.js
+                        tag: tag,
+                        proofVerified: true
+                    },
+                    proof: {
+                        publicSignals: proofResult.publicSignals || [],
+                        verified: true
+                    },
+                    debug: {
+                        attestationCount: proofResult.attestationCount || 0,
+                        walletAddress: proofResult.walletAddress,
+                        targetingReason: `Proven interest in ${tag} with ${proofResult.attestationCount} attestations`,
+                        timestamp: Date.now()
+                    }
                 };
             } else {
-                // User doesn't qualify - return fallback
+                // User doesn't qualify - return failure result
                 console.log('❌ User does not qualify for targeted ad');
                 
-                const fallbackAd = await this.loadFallbackAd();
-                
                 return {
-                    qualified: false,
-                    fallbackAd,
-                    reason: proofResult.error || 'Proof verification failed',
-                    proofDetails: proofResult,
-                    timestamp: Date.now()
+                    success: false,
+                    ad: {
+                        content: null,
+                        tag: tag,
+                        proofVerified: false
+                    },
+                    proof: {
+                        publicSignals: proofResult.publicSignals || [],
+                        verified: false
+                    },
+                    error: proofResult.error || 'Proof verification failed',
+                    debug: {
+                        reason: proofResult.error || 'Insufficient attestations or proof verification failed',
+                        attestationCount: proofResult.attestationCount || 0,
+                        threshold: threshold,
+                        timestamp: Date.now()
+                    }
                 };
             }
 
         } catch (error) {
             console.error('❌ Ad request failed:', error);
             
-            // Return fallback ad on error
-            const fallbackAd = await this.loadFallbackAd();
-            
+            // Return failure result with error details
             return {
-                qualified: false,
-                fallbackAd,
-                reason: `Ad request error: ${error.message}`,
-                error: error.message,
-                timestamp: Date.now()
+                success: false,
+                ad: {
+                    content: null,
+                    tag: tag,
+                    proofVerified: false
+                },
+                proof: {
+                    publicSignals: [],
+                    verified: false
+                },
+                error: `Ad request error: ${error.message}`,
+                debug: {
+                    errorType: error.name || 'UnknownError',
+                    errorMessage: error.message,
+                    timestamp: Date.now()
+                }
             };
         }
     }

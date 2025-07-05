@@ -207,7 +207,7 @@
     <!-- Main Application Script -->
     <script>
         // Main application initialization
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             console.log('🎯 Spotlite News loading...');
             
             // Initialize debug panel
@@ -218,14 +218,138 @@
                 debugContent.style.display = debugContent.style.display === 'none' ? 'block' : 'none';
             });
             
-            // Initialize ad system - This will be implemented in Task #2
+            // Initialize ZK proof-based ad system
             console.log('📊 Initializing ZK proof-based ad system...');
             
-            // TODO: Implement zkAffinityAgent.requestAd({ tag: "finance", threshold: 2 })
-            // This will be added in the next task
+            try {
+                // Check if zkAffinityAgent is available
+                if (typeof window.zkAffinityAgent === 'undefined') {
+                    console.error('❌ zkAffinityAgent not available');
+                    renderNoAd();
+                    return;
+                }
+                
+                // Request ad with exact parameters as specified in implementation details
+                console.log('🔍 Requesting finance ad with threshold 2...');
+                const result = await window.zkAffinityAgent.requestAd({ 
+                    tag: "finance", 
+                    threshold: 2 
+                });
+                
+                console.log('📊 Ad request result:', result);
+                
+                // Check if proof is valid and user qualifies
+                if (result.success && result.proof.verified) {
+                    console.log('✅ ZK proof verified - rendering targeted ad');
+                    
+                    // Render the ad using adRenderer.js
+                    await renderAd(result.ad.tag);
+                    
+                    // Show debug info for judges
+                    showProofDebug(result);
+                    
+                } else {
+                    console.log('❌ ZK proof failed or user does not qualify');
+                    
+                    // Show no ads message
+                    renderNoAd();
+                    
+                    // Show debug info for failed proof
+                    showProofDebug(result);
+                }
+                
+            } catch (error) {
+                console.error('❌ Ad system initialization failed:', error);
+                
+                // Show error state
+                renderNoAd();
+                
+                // Show error in debug panel
+                const debugInfo = document.getElementById('debug-content');
+                debugInfo.innerHTML = `
+                    <div class="error-info">
+                        <h4>❌ Error</h4>
+                        <p><strong>Message:</strong> ${error.message}</p>
+                        <p><strong>Time:</strong> ${new Date().toLocaleTimeString()}</p>
+                    </div>
+                `;
+            }
             
             console.log('✅ Spotlite News ready!');
         });
+        
+        // Window hooks for judge testing
+        window.demo = async function() {
+            console.log('🎬 Running full demo flow...');
+            
+            try {
+                const result = await window.zkAffinityAgent.requestAd({ tag: "finance", threshold: 2 });
+                console.log('Demo result:', result);
+                
+                if (result.success && result.proof.verified) {
+                    await renderAd(result.ad.tag);
+                    showProofDebug(result);
+                } else {
+                    renderNoAd();
+                    showProofDebug(result);
+                }
+                
+                return result;
+            } catch (error) {
+                console.error('Demo failed:', error);
+                return { error: error.message };
+            }
+        };
+        
+        window.testAll = async function() {
+            console.log('🧪 Running comprehensive tests...');
+            
+            const tags = ['finance', 'travel', 'privacy', 'gaming', 'technology'];
+            const results = {};
+            
+            for (const tag of tags) {
+                try {
+                    console.log(`Testing ${tag}...`);
+                    const result = await window.zkAffinityAgent.requestAd({ tag, threshold: 2 });
+                    results[tag] = result;
+                    
+                    // Test ad rendering
+                    if (result.success && result.proof.verified) {
+                        await renderAd(tag);
+                    }
+                    
+                } catch (error) {
+                    results[tag] = { error: error.message };
+                }
+            }
+            
+            console.log('Test results:', results);
+            return results;
+        };
+        
+        window.stats = function() {
+            console.log('📊 System Stats:');
+            console.log('Memory:', performance.memory ? performance.memory : 'Not available');
+            console.log('Timing:', performance.timing ? performance.timing : 'Not available');
+            console.log('Support:', {
+                zkAffinityAgent: !!window.zkAffinityAgent,
+                renderAd: typeof window.renderAd === 'function',
+                showProofDebug: typeof window.showProofDebug === 'function'
+            });
+        };
+        
+        // Store last proof result for debugging
+        window.lastProof = null;
+        
+        // Override zkAffinityAgent.requestAd to store results
+        if (typeof window.zkAffinityAgent !== 'undefined') {
+            const originalRequestAd = window.zkAffinityAgent.requestAd.bind(window.zkAffinityAgent);
+            window.zkAffinityAgent.requestAd = async function(params) {
+                const result = await originalRequestAd(params);
+                window.lastProof = result;
+                return result;
+            };
+        }
     </script>
 </body>
 </html> 
