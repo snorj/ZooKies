@@ -15,7 +15,10 @@
     "test-server": "node scripts/test-server.js",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test-e2e": "jest tests/finance-nerd-journey.test.js",
-    "test-watch": "jest --watch"
+    "test-watch": "jest --watch",
+    "test-zk": "node scripts/run-comprehensive-tests.js",
+    "test-zk-coverage": "node scripts/run-comprehensive-tests.js --coverage",
+    "test-zk-verbose": "node scripts/run-comprehensive-tests.js --verbose"
   },
   "keywords": [
     "zookies",
