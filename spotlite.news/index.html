@@ -155,16 +155,7 @@
         </div>
     </main>
 
-    <!-- Debug Panel for Judges -->
-    <div class="debug-panel" id="debug-info" role="region" aria-label="Debug information for judges">
-        <div class="debug-header">
-            <h3>🔍 ZK Proof Debug Info (For Judges)</h3>
-            <button class="debug-toggle" id="debug-toggle" aria-label="Toggle debug panel">Toggle Debug</button>
-        </div>
-        <div class="debug-content" id="debug-content">
-            <p>Debug information will appear here when ZK proofs are generated...</p>
-        </div>
-    </div>
+    <!-- ZK Proof modal will be dynamically created when needed -->
 
     <!-- Footer -->
     <footer class="site-footer" role="contentinfo">
@@ -219,13 +210,7 @@
         document.addEventListener('DOMContentLoaded', async function() {
             console.log('🎯 Spotlite News loading...');
             
-            // Initialize debug panel
-            const debugToggle = document.getElementById('debug-toggle');
-            const debugContent = document.getElementById('debug-content');
-            
-            debugToggle.addEventListener('click', function() {
-                debugContent.style.display = debugContent.style.display === 'none' ? 'block' : 'none';
-            });
+            // ZK proof modal system replaces the old debug panel
             
             // Initialize ZK proof-based ad system
             console.log('📊 Initializing ZK proof-based ad system...');
@@ -249,15 +234,6 @@
                 if (!bestTag) {
                     console.log('❌ User does not qualify for any ad categories');
                     renderNoAd();
-                    
-                    // Show debug info for no qualifying categories
-                    showProofDebug({
-                        qualified: false,
-                        reason: 'No qualifying categories found',
-                        qualifiedTags,
-                        threshold: 2,
-                        timestamp: Date.now()
-                    });
                     return;
                 }
                 
@@ -274,20 +250,16 @@
                 if (result.qualified && result.adContent) {
                     console.log(`✅ ZK proof verified - rendering targeted ${bestTag} ad`);
                     
-                    // Render the ad using adRenderer.js with the dynamic tag
-                    await renderAd(bestTag);
+                    // Render the ad using adRenderer.js with the dynamic tag and ZK proof data
+                    await renderAd(bestTag, result);
                     
-                    // Show debug info for judges
-                    showProofDebug(result);
+                    console.log('🔐 ZK icon added to ad - click to view proof details');
                     
                 } else {
                     console.log('❌ ZK proof failed or user does not qualify');
                     
                     // Show no ads message
                     renderNoAd();
-                    
-                    // Show debug info for failed proof
-                    showProofDebug(result);
                 }
                 
             } catch (error) {
@@ -295,16 +267,6 @@
                 
                 // Show error state
                 renderNoAd();
-                
-                // Show error in debug panel
-                const debugInfo = document.getElementById('debug-content');
-                debugInfo.innerHTML = `
-                    <div class="error-info">
-                        <h4>❌ Error</h4>
-                        <p><strong>Message:</strong> ${error.message}</p>
-                        <p><strong>Time:</strong> ${new Date().toLocaleTimeString()}</p>
-                    </div>
-                `;
             }
             
             console.log('✅ Spotlite News ready!');
@@ -329,11 +291,10 @@
                 console.log('Demo result:', result);
                 
                 if (result.qualified && result.adContent) {
-                    await renderAd(bestTag);
-                    showProofDebug(result);
+                    await renderAd(bestTag, result);
+                    console.log('🔐 ZK icon added to demo ad - click to view proof details');
                 } else {
                     renderNoAd();
-                    showProofDebug(result);
                 }
                 
                 return result;
@@ -357,7 +318,7 @@
                     
                     // Test ad rendering
                     if (result.qualified && result.adContent) {
-                        await renderAd(tag);
+                        await renderAd(tag, result);
                     }
                     
                 } catch (error) {
@@ -376,7 +337,7 @@
             console.log('Support:', {
                 zkAffinityAgent: !!window.zkAffinityAgent,
                 renderAd: typeof window.renderAd === 'function',
-                showProofDebug: typeof window.showProofDebug === 'function'
+                zkModal: typeof window.closeZkProofModal === 'function'
             });
         };
         
