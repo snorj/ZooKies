@@ -13,9 +13,12 @@ document.addEventListener('DOMContentLoaded', async function() {
     console.log('TheModernByte - Site initializing...');
     
     try {
-        // Initialize zkAffinityAgent
-        zkAgent = new zkAffinityAgent();
-        await zkAgent.init();
+        // Use the global zkAffinityAgent singleton
+        zkAgent = window.zkAffinityAgent;
+        if (!zkAgent) {
+            throw new Error('zkAffinityAgent not available');
+        }
+        await zkAgent.initializeWallet();
         console.log('zkAffinityAgent initialized successfully');
         
         // Set up event listeners
@@ -94,17 +97,14 @@ async function handleAdCardClick(event) {
             }
         };
         
-        // Store attestation using zkAffinityAgent
-        const result = await zkAgent.storeAttestation(attestationData);
+        // Use zkAffinityAgent's onAdClick method
+        const result = await zkAgent.onAdClick(adTag, 'themodernbyte.com');
         
         if (result.success) {
-            console.log('Attestation created successfully:', result.attestationId);
+            console.log('Attestation created successfully:', result.attestation);
             
             // Update user profile
             await updateUserProfile(adTag);
-            
-            // Show ad modal with details
-            showAdModal(adTag, adId, adCard);
             
             // Show success message
             showMessage('Ad interaction recorded successfully!', 'success');
@@ -231,12 +231,17 @@ function getClosestArticleTitle(adCard) {
 // Initialize profile viewer
 async function initializeProfile() {
     try {
-        // Get current user profile
-        const profile = await zkAgent.getUserProfile();
-        currentUser = profile;
+        // Skip user profile for now (method doesn't exist)
+        currentUser = null;
         
-        // Get user attestations
-        userAttestations = await zkAgent.getAttestations() || [];
+        // Get user attestations from database
+        const walletAddress = await zkAgent.getWalletAddress();
+        if (zkAgent.dbManager) {
+            userAttestations = await zkAgent.dbManager.getAllAttestations(walletAddress) || [];
+        } else {
+            // Fallback to local attestations if no database
+            userAttestations = zkAgent.getAttestations() || [];
+        }
         
         // Update profile display
         updateProfileDisplay();
@@ -244,6 +249,7 @@ async function initializeProfile() {
     } catch (error) {
         console.error('Error initializing profile:', error);
         // Set default values
+        userAttestations = [];
         updateProfileDisplay();
     }
 }

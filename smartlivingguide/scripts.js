@@ -13,9 +13,12 @@ document.addEventListener('DOMContentLoaded', async function() {
     console.log('Smart Living Guide - Site initializing...');
     
     try {
-        // Initialize zkAffinityAgent
-        zkAgent = new zkAffinityAgent();
-        await zkAgent.init();
+        // Use the global zkAffinityAgent singleton
+        zkAgent = window.zkAffinityAgent;
+        if (!zkAgent) {
+            throw new Error('zkAffinityAgent not available');
+        }
+        await zkAgent.initializeWallet();
         console.log('zkAffinityAgent initialized successfully');
         
         // Set up event listeners
@@ -94,17 +97,14 @@ async function handleAdCardClick(event) {
             }
         };
         
-        // Store attestation using zkAffinityAgent
-        const result = await zkAgent.storeAttestation(attestationData);
+        // Use zkAffinityAgent's onAdClick method
+        const result = await zkAgent.onAdClick(adTag, 'smartlivingguide.com');
         
         if (result.success) {
-            console.log('Attestation created successfully:', result.attestationId);
+            console.log('Attestation created successfully:', result.attestation);
             
             // Update user profile
             await updateUserProfile(adTag);
-            
-            // Show ad modal with details
-            showAdModal(adTag, adId, adCard);
             
             // Show success message
             showMessage('Ad interaction recorded successfully!', 'success');
@@ -251,17 +251,33 @@ function getClosestArticleTitle(adCard) {
 // Initialize profile viewer
 async function initializeProfile() {
     try {
-        // Get current user profile
-        currentUser = await zkAgent.getUserProfile();
+        console.log('🔍 Starting profile initialization...');
         
-        // Get user attestations
-        userAttestations = await zkAgent.getUserAttestations();
+        // Skip user profile for now (method doesn't exist)
+        currentUser = null;
+        
+        // Get user attestations from database
+        console.log('💳 Getting wallet address...');
+        const walletAddress = await zkAgent.getWalletAddress();
+        console.log('✅ Wallet address:', walletAddress);
+        
+        console.log('🗄️ Checking database manager...');
+        if (zkAgent.dbManager) {
+            console.log('📋 Fetching attestations from database...');
+            userAttestations = await zkAgent.dbManager.getAllAttestations(walletAddress) || [];
+            console.log(`✅ Found ${userAttestations.length} attestations`);
+        } else {
+            console.log('⚠️ No database manager, using local attestations');
+            userAttestations = zkAgent.getAttestations() || [];
+        }
         
         // Update profile display
+        console.log('🖼️ Updating profile display...');
         updateProfileDisplay();
+        console.log('✅ Profile initialization complete');
         
     } catch (error) {
-        console.error('Failed to initialize profile:', error);
+        console.error('❌ Failed to initialize profile:', error);
         // Set default values
         currentUser = null;
         userAttestations = [];
@@ -326,8 +342,13 @@ async function updateUserProfile(tag) {
         
         if (result.success) {
             currentUser = result.profile;
-            // Refresh attestations
-            userAttestations = await zkAgent.getUserAttestations();
+            // Refresh attestations from database
+            const walletAddress = await zkAgent.getWalletAddress();
+            if (zkAgent.dbManager) {
+                userAttestations = await zkAgent.dbManager.getAllAttestations(walletAddress) || [];
+            } else {
+                userAttestations = zkAgent.getAttestations() || [];
+            }
             updateProfileDisplay();
         }
         
@@ -430,7 +451,7 @@ function showMessage(message, type = 'success') {
     if (!container) return;
     
     const messageElement = document.createElement('div');
-    messageElement.className = `message message-${type}`;
+    messageElement.className = `message message-${type} ${type}-message`;
     messageElement.textContent = message;
     
     container.appendChild(messageElement);
