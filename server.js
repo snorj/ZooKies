@@ -9,6 +9,11 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 
+// Fallback for __dirname if not available
+if (typeof __dirname === 'undefined') {
+  global.__dirname = process.cwd();
+}
+
 // ZK Proof verification dependencies
 const snarkjs = require('snarkjs');
 let verificationKey;

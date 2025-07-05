@@ -95,7 +95,7 @@ class TestRunner {
 
     // Check if circuit files exist
     const circuitPaths = [
-      'circom/build/circuits/ThresholdProof.wasm',
+      'circom/build/circuits/ThresholdProof_js/ThresholdProof.wasm',
       'circom/build/keys/ThresholdProof_final.zkey',
       'circom/build/keys/verification_key.json'
     ];

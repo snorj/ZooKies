@@ -47,7 +47,7 @@ if [ -f "build/circuits/ThresholdProof_js/generate_witness.js" ]; then
     cd build/circuits/ThresholdProof_js
     
     echo -e "${BLUE}  • Testing valid threshold case...${NC}"
-    if node generate_witness.js ThresholdProof.wasm ../../../inputs/test/valid_threshold.json ../witness/valid_test.wtns; then
+    if node generate_witness.js ThresholdProof.wasm ../../../inputs/test/valid_threshold.json ../../witness/valid_test.wtns; then
         echo -e "${GREEN}    ✅ Valid threshold test passed${NC}"
     else
         echo -e "${RED}    ❌ Valid threshold test failed${NC}"
@@ -91,13 +91,13 @@ else
     echo -e "${BLUE}💡 Run './scripts/setup.sh' first to enable proof testing${NC}"
 fi
 
-# Run npm tests if available
-if [ -f "package.json" ] && grep -q '"test"' package.json; then
-    echo -e "${YELLOW}📋 Running npm test suite...${NC}"
-    if npm test; then
-        echo -e "${GREEN}✅ npm test suite passed${NC}"
+# Run circuit unit tests if available
+if [ -f "circuits/tests/ThresholdProof.test.js" ]; then
+    echo -e "${YELLOW}📋 Running circuit unit tests...${NC}"
+    if npx mocha circuits/tests/ThresholdProof.test.js --timeout 60000; then
+        echo -e "${GREEN}✅ Circuit unit tests passed${NC}"
     else
-        echo -e "${RED}❌ npm test suite failed${NC}"
+        echo -e "${RED}❌ Circuit unit tests failed${NC}"
         exit 1
     fi
 fi
