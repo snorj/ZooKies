@@ -1,5 +1,7 @@
-import { openDB } from 'idb';
-import { getEmbeddedWallet, createSignedProfileClaim } from './privy.js';
+// Use global idb library (loaded via UMD)
+const { openDB } = window.idb || {};
+// Import Privy functions from global object
+const { getEmbeddedWallet, createSignedProfileClaim } = window.privyModule || {};
 
 // Constants
 const DB_NAME = 'zookies_privy_cache';
@@ -43,7 +45,7 @@ async function initializeProfileDB() {
  * Ensure wallet exists and profile is bound
  * @returns {Promise<{success: boolean, profile?: object, error?: string}>}
  */
-export async function ensureWalletAndProfile() {
+async function ensureWalletAndProfile() {
     try {
         // Get or create embedded wallet
         const { wallet, error: walletError } = await getEmbeddedWallet();
@@ -82,7 +84,7 @@ export async function ensureWalletAndProfile() {
  * @param {string} walletAddress - The wallet address to look up
  * @returns {Promise<{profile?: object, error?: string}>}
  */
-export async function getProfileByWallet(walletAddress) {
+async function getProfileByWallet(walletAddress) {
     try {
         const db = await initializeProfileDB();
         const profile = await db.get(PROFILES_STORE, walletAddress);
@@ -98,7 +100,7 @@ export async function getProfileByWallet(walletAddress) {
  * @param {object} profile - The profile object to store
  * @returns {Promise<{success: boolean, error?: string}>}
  */
-export async function storeProfile(profile) {
+async function storeProfile(profile) {
     try {
         if (!profile.wallet || !profile.signedProfileClaim) {
             throw new Error('Invalid profile structure');
@@ -122,7 +124,7 @@ export async function storeProfile(profile) {
  * @param {object} profile - The profile to verify
  * @returns {Promise<boolean>}
  */
-export async function verifyProfileClaim(profile) {
+async function verifyProfileClaim(profile) {
     try {
         if (!profile.signedProfileClaim || !profile.wallet) {
             return false;
@@ -166,7 +168,7 @@ export async function verifyProfileClaim(profile) {
  * @param {object} attestation - The attestation to add
  * @returns {Promise<{success: boolean, error?: string}>}
  */
-export async function addAttestation(walletAddress, attestation) {
+async function addAttestation(walletAddress, attestation) {
     try {
         const { profile, error } = await getProfileByWallet(walletAddress);
         if (error || !profile) {
@@ -208,7 +210,7 @@ export async function addAttestation(walletAddress, attestation) {
  * Get all profiles (for debugging/admin use)
  * @returns {Promise<{profiles?: object[], error?: string}>}
  */
-export async function getAllProfiles() {
+async function getAllProfiles() {
     try {
         const db = await initializeProfileDB();
         const profiles = await db.getAll(PROFILES_STORE);
@@ -223,7 +225,7 @@ export async function getAllProfiles() {
  * Clear all profile data (for testing/reset)
  * @returns {Promise<{success: boolean, error?: string}>}
  */
-export async function clearAllProfiles() {
+async function clearAllProfiles() {
     try {
         const db = await initializeProfileDB();
         await db.clear(PROFILES_STORE);
@@ -238,13 +240,26 @@ export async function clearAllProfiles() {
     }
 }
 
-// Debug helpers
-if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
-    window.zkAgent = window.zkAgent || {};
-    window.zkAgent.profiles = {
-        getAll: getAllProfiles,
-        clear: clearAllProfiles,
-        getByWallet: getProfileByWallet,
-        verify: verifyProfileClaim
+// Make functions available globally for browser environment
+if (typeof window !== 'undefined') {
+    window.profileStoreModule = {
+        ensureWalletAndProfile,
+        getProfileByWallet,
+        storeProfile,
+        verifyProfileClaim,
+        addAttestation,
+        getAllProfiles,
+        clearAllProfiles
     };
+    
+    // Debug helpers
+    if (process.env.NODE_ENV !== 'production') {
+        window.zkAgent = window.zkAgent || {};
+        window.zkAgent.profiles = {
+            getAll: getAllProfiles,
+            clear: clearAllProfiles,
+            getByWallet: getProfileByWallet,
+            verify: verifyProfileClaim
+        };
+    }
 } 

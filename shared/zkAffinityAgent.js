@@ -205,7 +205,13 @@ class ZkAffinityAgent {
             // Check if Privy modules are loaded
             if (!profileStoreModule) {
                 console.warn('⚠️ Privy modules not loaded, falling back to temporary wallet');
-                return await this.initializeWallet();
+                const walletAddress = await this.initializeWallet();
+                return {
+                    success: true,
+                    wallet: this.wallet,
+                    fallback: true,
+                    walletAddress
+                };
             }
 
             // Use Privy profile store to ensure wallet and profile

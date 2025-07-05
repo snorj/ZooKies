@@ -228,7 +228,7 @@ async function initializeProfile() {
         // Get user attestations from database
         const walletAddress = await zkAgent.getWalletAddress();
         if (zkAgent.dbManager) {
-            userAttestations = await zkAgent.dbManager.getAllAttestations(walletAddress) || [];
+            userAttestations = await zkAgent.dbManager.getAttestations(walletAddress) || [];
         } else {
             // Fallback to local attestations if no database
             userAttestations = zkAgent.getAttestations() || [];
@@ -895,14 +895,8 @@ function setupWalletConsoleDebug() {
         }
     };
     
-    window.zkAgent.ensureWalletAndProfile = () => {
-        if (zkAgent && zkAgent.ensureWalletAndProfile) {
-            return zkAgent.ensureWalletAndProfile();
-        } else {
-            console.warn('Privy integration not available');
-            return null;
-        }
-    };
+    // ensureWalletAndProfile is already set up by zkAffinityAgent.js
+    // No need to override it here
     
     window.zkAgent.getProfile = () => {
         if (zkAgent && zkAgent.getProfileSummary) {

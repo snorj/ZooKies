@@ -4,19 +4,20 @@
  * Provides compatibility with the server-side database interface
  */
 
-import { openDB } from 'idb';
+// Use global idb library (loaded via UMD)
+const { openDB } = window.idb || {};
 
 /**
  * Custom error classes for database operations
  */
-export class DatabaseError extends Error {
+class DatabaseError extends Error {
     constructor(message) {
         super(message);
         this.name = 'DatabaseError';
     }
 }
 
-export class ValidationError extends DatabaseError {
+class ValidationError extends DatabaseError {
     constructor(message) {
         super(message);
         this.name = 'ValidationError';
@@ -27,7 +28,7 @@ export class ValidationError extends DatabaseError {
  * Browser-compatible database manager using IndexedDB
  * Provides similar interface to the server-side SQLite database
  */
-export class BrowserDatabaseManager {
+class BrowserDatabaseManager {
     constructor() {
         this.dbName = 'zookies_privy_cache';
         this.version = 2; // Incremented to support new schema
@@ -459,20 +460,28 @@ let browserDB = null;
  * Get singleton browser database instance
  * @returns {BrowserDatabaseManager}
  */
-export function getBrowserDatabase() {
+function getBrowserDatabase() {
     if (!browserDB) {
         browserDB = new BrowserDatabaseManager();
     }
     return browserDB;
 }
 
-// Debug helpers for development
-if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
-    window.zkAgent = window.zkAgent || {};
-    window.zkAgent.browserDB = {
-        getInstance: getBrowserDatabase,
-        getStats: () => getBrowserDatabase().getStats(),
-        clearAll: () => getBrowserDatabase().clearAll(),
-        getAllProfiles: () => getBrowserDatabase().getAllProfiles()
-    };
+// Make classes and functions available globally
+if (typeof window !== 'undefined') {
+    window.DatabaseManager = BrowserDatabaseManager;
+    window.DatabaseError = DatabaseError;
+    window.ValidationError = ValidationError;
+    window.getBrowserDatabase = getBrowserDatabase;
+    
+    // Debug helpers for development
+    if (process.env.NODE_ENV !== 'production') {
+        window.zkAgent = window.zkAgent || {};
+        window.zkAgent.browserDB = {
+            getInstance: getBrowserDatabase,
+            getStats: () => getBrowserDatabase().getStats(),
+            clearAll: () => getBrowserDatabase().clearAll(),
+            getAllProfiles: () => getBrowserDatabase().getAllProfiles()
+        };
+    }
 } 

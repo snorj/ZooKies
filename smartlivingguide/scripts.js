@@ -861,14 +861,8 @@ function setupWalletConsoleDebug() {
         }
     };
     
-    window.zkAgent.ensureWalletAndProfile = () => {
-        if (zkAgent && zkAgent.ensureWalletAndProfile) {
-            return zkAgent.ensureWalletAndProfile();
-        } else {
-            console.warn('Privy integration not available');
-            return null;
-        }
-    };
+    // ensureWalletAndProfile is already set up by zkAffinityAgent.js
+    // No need to override it here
     
     window.zkAgent.getProfile = () => {
         if (zkAgent && zkAgent.getProfileSummary) {
