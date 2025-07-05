@@ -78,9 +78,25 @@ const TAG_INDEX_TO_STRING = Object.fromEntries(
  * Circuit file paths (relative to project root)
  */
 const CIRCUIT_PATHS = {
-    wasm: 'circom/build/circuits/ThresholdProof.wasm',
-    zkey: 'circom/build/keys/ThresholdProof_final.zkey',
-    verificationKey: 'circom/build/keys/verification_key.json'
+    wasm: '/circom/build/circuits/ThresholdProof_js/ThresholdProof.wasm',
+    zkey: '/circom/build/keys/ThresholdProof_final.zkey',
+    verificationKey: '/circom/build/keys/verification_key.json'
+};
+
+/**
+ * Browser performance configuration
+ */
+const BROWSER_CONFIG = {
+    PROOF_TIMEOUT: 30000, // 30 seconds
+    CHUNK_SIZE: 10, // Process attestations in chunks of 10
+    CACHE_KEY_PREFIX: 'zookies_circuit_',
+    MAX_BUNDLE_SIZE: 5 * 1024 * 1024, // 5MB
+    MIN_BROWSER_VERSIONS: {
+        chrome: 90,
+        firefox: 90,
+        safari: 14,
+        edge: 90
+    }
 };
 
 /**
@@ -91,6 +107,20 @@ class ZkProofBuilder {
         this.isInitialized = false;
         this.dbManager = null;
         this.trustedKeys = null;
+        
+        // Browser-specific properties
+        this.circuitFiles = {
+            wasm: null,
+            zkey: null,
+            verificationKey: null
+        };
+        this.isCircuitCached = false;
+        this.performanceMetrics = {
+            loadTime: 0,
+            proofTime: 0,
+            memoryUsage: 0
+        };
+        this.progressCallback = null;
     }
 
     /**
@@ -124,6 +154,318 @@ class ZkProofBuilder {
     async ensureInitialized() {
         if (!this.isInitialized) {
             await this.initialize();
+        }
+    }
+
+    /**
+     * Check browser compatibility for ZK proof generation
+     * @returns {Object} - Compatibility status and details
+     */
+    checkBrowserCompatibility() {
+        const result = {
+            compatible: true,
+            issues: [],
+            browserInfo: {}
+        };
+
+        // Check if running in browser
+        if (typeof window === 'undefined') {
+            result.compatible = false;
+            result.issues.push('Not running in browser environment');
+            return result;
+        }
+
+        // Check WebAssembly support
+        if (typeof WebAssembly === 'undefined') {
+            result.compatible = false;
+            result.issues.push('WebAssembly not supported');
+        }
+
+        // Check BigInt support
+        if (typeof BigInt === 'undefined') {
+            result.compatible = false;
+            result.issues.push('BigInt not supported');
+        }
+
+        // Check WebCrypto API
+        if (!crypto || !crypto.subtle) {
+            result.compatible = false;
+            result.issues.push('WebCrypto API not available');
+        }
+
+        // Check IndexedDB support
+        if (!window.indexedDB) {
+            result.compatible = false;
+            result.issues.push('IndexedDB not supported');
+        }
+
+        // Detect browser and version
+        const userAgent = navigator.userAgent;
+        if (userAgent.includes('Chrome/')) {
+            const version = parseInt(userAgent.match(/Chrome\/(\d+)/)?.[1] || '0');
+            result.browserInfo = { name: 'Chrome', version };
+            if (version < BROWSER_CONFIG.MIN_BROWSER_VERSIONS.chrome) {
+                result.issues.push(`Chrome ${version} too old, need ${BROWSER_CONFIG.MIN_BROWSER_VERSIONS.chrome}+`);
+            }
+        } else if (userAgent.includes('Firefox/')) {
+            const version = parseInt(userAgent.match(/Firefox\/(\d+)/)?.[1] || '0');
+            result.browserInfo = { name: 'Firefox', version };
+            if (version < BROWSER_CONFIG.MIN_BROWSER_VERSIONS.firefox) {
+                result.issues.push(`Firefox ${version} too old, need ${BROWSER_CONFIG.MIN_BROWSER_VERSIONS.firefox}+`);
+            }
+        } else if (userAgent.includes('Safari/')) {
+            const version = parseInt(userAgent.match(/Version\/(\d+)/)?.[1] || '0');
+            result.browserInfo = { name: 'Safari', version };
+            if (version < BROWSER_CONFIG.MIN_BROWSER_VERSIONS.safari) {
+                result.issues.push(`Safari ${version} too old, need ${BROWSER_CONFIG.MIN_BROWSER_VERSIONS.safari}+`);
+            }
+        } else if (userAgent.includes('Edg/')) {
+            const version = parseInt(userAgent.match(/Edg\/(\d+)/)?.[1] || '0');
+            result.browserInfo = { name: 'Edge', version };
+            if (version < BROWSER_CONFIG.MIN_BROWSER_VERSIONS.edge) {
+                result.issues.push(`Edge ${version} too old, need ${BROWSER_CONFIG.MIN_BROWSER_VERSIONS.edge}+`);
+            }
+        }
+
+        if (result.issues.length > 0) {
+            result.compatible = false;
+        }
+
+        return result;
+    }
+
+    /**
+     * Load circuit files with caching in IndexedDB
+     * @param {Function} progressCallback - Optional progress callback
+     * @returns {Promise<void>}
+     */
+    async loadCircuitFiles(progressCallback = null) {
+        this.progressCallback = progressCallback;
+        
+        try {
+            this.updateProgress('Checking browser compatibility...', 0);
+            
+            // Check browser compatibility first
+            const compatibility = this.checkBrowserCompatibility();
+            if (!compatibility.compatible) {
+                throw new ProofGenerationError(`Browser incompatible: ${compatibility.issues.join(', ')}`);
+            }
+
+            console.log('✅ Browser compatibility check passed:', compatibility.browserInfo);
+
+            // Try to load from cache first
+            this.updateProgress('Checking circuit cache...', 10);
+            const cached = await this.loadFromCache();
+            if (cached) {
+                this.updateProgress('Circuit files loaded from cache', 100);
+                return;
+            }
+
+            // Load from network if not cached
+            this.updateProgress('Loading circuit files from network...', 20);
+            const startTime = Date.now();
+
+            const loadPromises = [
+                this.loadFileWithRetry(CIRCUIT_PATHS.wasm, 'wasm'),
+                this.loadFileWithRetry(CIRCUIT_PATHS.zkey, 'zkey')
+            ];
+
+            // Load files in parallel
+            const [wasmBuffer, zkeyBuffer] = await Promise.all(loadPromises);
+
+            this.circuitFiles.wasm = wasmBuffer;
+            this.circuitFiles.zkey = zkeyBuffer;
+
+            this.performanceMetrics.loadTime = Date.now() - startTime;
+            this.updateProgress('Circuit files loaded, caching...', 80);
+
+            // Cache the files for future use
+            await this.saveToCache();
+            
+            this.isCircuitCached = true;
+            this.updateProgress('Circuit files ready', 100);
+            
+            console.log(`✅ Circuit files loaded in ${this.performanceMetrics.loadTime}ms`);
+
+        } catch (error) {
+            this.updateProgress('Failed to load circuit files', 0);
+            throw new ProofGenerationError(`Failed to load circuit files: ${error.message}`);
+        }
+    }
+
+    /**
+     * Load file with retry mechanism
+     * @param {string} url - File URL
+     * @param {string} type - File type for progress tracking
+     * @returns {Promise<ArrayBuffer>}
+     */
+    async loadFileWithRetry(url, type, maxRetries = 3) {
+        let lastError;
+        
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                this.updateProgress(`Loading ${type} file (attempt ${attempt}/${maxRetries})...`, 20 + (attempt * 15));
+                
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const buffer = await response.arrayBuffer();
+                
+                // Verify file size is reasonable
+                if (buffer.byteLength === 0) {
+                    throw new Error('Empty file received');
+                }
+                
+                if (buffer.byteLength > BROWSER_CONFIG.MAX_BUNDLE_SIZE) {
+                    throw new Error(`File too large: ${buffer.byteLength} bytes`);
+                }
+
+                console.log(`✅ ${type} file loaded: ${buffer.byteLength} bytes`);
+                return buffer;
+
+            } catch (error) {
+                lastError = error;
+                console.warn(`⚠️ Failed to load ${type} file (attempt ${attempt}):`, error.message);
+                
+                if (attempt < maxRetries) {
+                    // Exponential backoff
+                    await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+                }
+            }
+        }
+
+        throw new ProofGenerationError(`Failed to load ${url} after ${maxRetries} attempts: ${lastError.message}`);
+    }
+
+    /**
+     * Load circuit files from IndexedDB cache
+     * @returns {Promise<boolean>} - True if loaded from cache
+     */
+    async loadFromCache() {
+        try {
+            if (!window.indexedDB) {
+                return false;
+            }
+
+            const db = await this.openCacheDB();
+            const transaction = db.transaction(['circuitFiles'], 'readonly');
+            const store = transaction.objectStore('circuitFiles');
+
+            const [wasmCache, zkeyCache] = await Promise.all([
+                this.getCacheItem(store, 'wasm'),
+                this.getCacheItem(store, 'zkey')
+            ]);
+
+            if (wasmCache && zkeyCache) {
+                // Check cache validity (files exist and are recent)
+                const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+                const now = Date.now();
+                
+                if ((now - wasmCache.timestamp) < maxAge && (now - zkeyCache.timestamp) < maxAge) {
+                    this.circuitFiles.wasm = wasmCache.data;
+                    this.circuitFiles.zkey = zkeyCache.data;
+                    this.isCircuitCached = true;
+                    
+                    console.log('✅ Circuit files loaded from cache');
+                    return true;
+                }
+            }
+
+        } catch (error) {
+            console.warn('Failed to load from cache:', error.message);
+        }
+
+        return false;
+    }
+
+    /**
+     * Save circuit files to IndexedDB cache
+     * @returns {Promise<void>}
+     */
+    async saveToCache() {
+        try {
+            if (!window.indexedDB || !this.circuitFiles.wasm || !this.circuitFiles.zkey) {
+                return;
+            }
+
+            const db = await this.openCacheDB();
+            const transaction = db.transaction(['circuitFiles'], 'readwrite');
+            const store = transaction.objectStore('circuitFiles');
+
+            const timestamp = Date.now();
+
+            await Promise.all([
+                this.setCacheItem(store, 'wasm', this.circuitFiles.wasm, timestamp),
+                this.setCacheItem(store, 'zkey', this.circuitFiles.zkey, timestamp)
+            ]);
+
+            console.log('✅ Circuit files cached successfully');
+
+        } catch (error) {
+            console.warn('Failed to save to cache:', error.message);
+        }
+    }
+
+    /**
+     * Open IndexedDB cache database
+     * @returns {Promise<IDBDatabase>}
+     */
+    async openCacheDB() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(`${BROWSER_CONFIG.CACHE_KEY_PREFIX}db`, 1);
+            
+            request.onerror = () => reject(request.error);
+            request.onsuccess = () => resolve(request.result);
+            
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains('circuitFiles')) {
+                    db.createObjectStore('circuitFiles', { keyPath: 'id' });
+                }
+            };
+        });
+    }
+
+    /**
+     * Get item from cache store
+     * @param {IDBObjectStore} store - IndexedDB store
+     * @param {string} key - Cache key
+     * @returns {Promise<Object>}
+     */
+    async getCacheItem(store, key) {
+        return new Promise((resolve, reject) => {
+            const request = store.get(key);
+            request.onerror = () => reject(request.error);
+            request.onsuccess = () => resolve(request.result);
+        });
+    }
+
+    /**
+     * Set item in cache store
+     * @param {IDBObjectStore} store - IndexedDB store
+     * @param {string} key - Cache key
+     * @param {ArrayBuffer} data - Data to cache
+     * @param {number} timestamp - Cache timestamp
+     * @returns {Promise<void>}
+     */
+    async setCacheItem(store, key, data, timestamp) {
+        return new Promise((resolve, reject) => {
+            const request = store.put({ id: key, data, timestamp });
+            request.onerror = () => reject(request.error);
+            request.onsuccess = () => resolve();
+        });
+    }
+
+    /**
+     * Update progress callback if available
+     * @param {string} message - Progress message
+     * @param {number} percentage - Progress percentage (0-100)
+     */
+    updateProgress(message, percentage) {
+        if (this.progressCallback) {
+            this.progressCallback({ message, percentage });
         }
     }
 
@@ -213,7 +555,13 @@ class ZkProofBuilder {
      * @param {Object} circuitInputs - Structured circuit inputs from prepareZKInputs
      * @returns {Promise<Object>} - Generated proof and public signals
      */
-    async generateProof(circuitInputs) {
+    /**
+     * Generate zero-knowledge proof using prepared inputs (Browser-optimized)
+     * @param {Object} circuitInputs - Prepared circuit inputs from prepareZKInputs()
+     * @param {Function} progressCallback - Optional progress callback
+     * @returns {Promise<Object>} - Generated proof and public signals
+     */
+    async generateProof(circuitInputs, progressCallback = null) {
         await this.ensureInitialized();
 
         try {
@@ -225,42 +573,141 @@ class ZkProofBuilder {
                 throw new ProofGenerationError('SnarkJS not available for proof generation');
             }
 
-            console.log('🔧 Starting proof generation with SnarkJS...');
+            console.log('🔧 Starting browser-optimized proof generation...');
+            
+            // Track memory usage if available
+            const startMemory = this.measureMemoryUsage();
             const startTime = Date.now();
+            
+            // Update progress
+            if (progressCallback) {
+                progressCallback({ message: 'Preparing circuit files...', percentage: 0 });
+            }
 
-            // Load circuit files
-            const wasmPath = CIRCUIT_PATHS.wasm;
-            const zkeyPath = CIRCUIT_PATHS.zkey;
+            // Load circuit files with caching
+            await this.loadCircuitFiles(progressCallback);
+            
+            if (progressCallback) {
+                progressCallback({ message: 'Generating zero-knowledge proof...', percentage: 60 });
+            }
 
-            console.log('📁 Loading circuit files:', { wasmPath, zkeyPath });
-
-            // Generate proof using Groth16
-            const { proof, publicSignals } = await snarkjs.groth16.fullProve(
-                circuitInputs,
-                wasmPath,
-                zkeyPath
-            );
+            // Setup timeout for proof generation
+            const proofPromise = this.generateProofWithTimeout(circuitInputs);
+            
+            const { proof, publicSignals } = await proofPromise;
 
             const proofTime = Date.now() - startTime;
+            const endMemory = this.measureMemoryUsage();
+            
+            // Update performance metrics
+            this.performanceMetrics.proofTime = proofTime;
+            this.performanceMetrics.memoryUsage = endMemory - startMemory;
+
+            if (progressCallback) {
+                progressCallback({ message: 'Proof generation completed!', percentage: 100 });
+            }
+
             console.log(`✅ Proof generated successfully in ${proofTime}ms`);
 
-            // Log proof stats
-            console.log('📊 Proof statistics:', {
+            // Log comprehensive proof statistics
+            console.log('📊 Proof generation statistics:', {
                 proofSize: JSON.stringify(proof).length,
                 publicSignalsCount: publicSignals.length,
-                generationTime: proofTime
+                generationTime: proofTime,
+                loadTime: this.performanceMetrics.loadTime,
+                memoryDelta: this.performanceMetrics.memoryUsage,
+                wasCached: this.isCircuitCached
             });
+
+            // Cleanup and memory management
+            this.performMemoryCleanup();
 
             return {
                 proof: proof,
                 publicSignals: publicSignals,
                 circuitInputs: circuitInputs,
-                generationTime: proofTime
+                generationTime: proofTime,
+                loadTime: this.performanceMetrics.loadTime,
+                memoryUsage: this.performanceMetrics.memoryUsage,
+                cached: this.isCircuitCached
             };
 
         } catch (error) {
             console.error('❌ Proof generation failed:', error);
+            this.performMemoryCleanup();
             throw new ProofGenerationError(`Failed to generate proof: ${error.message}`);
+        }
+    }
+
+    /**
+     * Generate proof with timeout protection
+     * @param {Object} circuitInputs - Circuit inputs
+     * @returns {Promise<Object>} - Proof result
+     */
+    async generateProofWithTimeout(circuitInputs) {
+        return new Promise(async (resolve, reject) => {
+            // Setup timeout
+            const timeout = setTimeout(() => {
+                reject(new ProofGenerationError(`Proof generation timed out after ${BROWSER_CONFIG.PROOF_TIMEOUT}ms`));
+            }, BROWSER_CONFIG.PROOF_TIMEOUT);
+
+            try {
+                // Generate proof using browser-loaded circuit files
+                const { proof, publicSignals } = await snarkjs.groth16.fullProve(
+                    circuitInputs,
+                    this.circuitFiles.wasm,
+                    this.circuitFiles.zkey
+                );
+
+                clearTimeout(timeout);
+                resolve({ proof, publicSignals });
+
+            } catch (error) {
+                clearTimeout(timeout);
+                reject(error);
+            }
+        });
+    }
+
+    /**
+     * Measure memory usage if available
+     * @returns {number} - Memory usage in bytes, or 0 if unavailable
+     */
+    measureMemoryUsage() {
+        try {
+            if (performance.measureUserAgentSpecificMemory) {
+                // Chrome-specific memory measurement
+                return performance.memory ? performance.memory.usedJSHeapSize : 0;
+            }
+            return 0;
+        } catch (error) {
+            return 0;
+        }
+    }
+
+    /**
+     * Perform memory cleanup after proof generation
+     */
+    performMemoryCleanup() {
+        try {
+            // Clear progress callback reference
+            this.progressCallback = null;
+            
+            // Suggest garbage collection if available
+            if (window.gc && typeof window.gc === 'function') {
+                window.gc();
+            }
+            
+            // Clear large circuit files from memory if they're not cached
+            // Keep them if cached for better performance
+            if (!this.isCircuitCached) {
+                this.circuitFiles.wasm = null;
+                this.circuitFiles.zkey = null;
+            }
+            
+            console.log('🧹 Memory cleanup completed');
+        } catch (error) {
+            console.warn('Memory cleanup failed:', error.message);
         }
     }
 
