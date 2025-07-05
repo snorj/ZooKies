@@ -4,30 +4,78 @@
  * Designed for browser environments with full Node.js compatibility for testing
  */
 
+console.log('🟢 zkAffinityAgent.js file is starting to execute...');
+
 // Browser-compatible imports with fallbacks
-let ethers, DatabaseManager, PublisherSigner, PUBLISHER_KEYS;
+let ethers;
+
+// Helper functions to get references without variable conflicts
+function getDatabaseManager() {
+    if (typeof window !== 'undefined') {
+        return window.DatabaseManager;
+    } else if (typeof global !== 'undefined' && global.DatabaseManager) {
+        return global.DatabaseManager;
+    }
+    return null;
+}
+
+function getPublisherSigner() {
+    if (typeof window !== 'undefined') {
+        return window.PublisherSigner;
+    } else if (typeof global !== 'undefined' && global.PublisherSigner) {
+        return global.PublisherSigner;
+    }
+    return null;
+}
+
+function getPublisherKeys() {
+    if (typeof window !== 'undefined') {
+        return window.PUBLISHER_KEYS;
+    } else if (typeof global !== 'undefined' && global.PUBLISHER_KEYS) {
+        return global.PUBLISHER_KEYS;
+    }
+    return null;
+}
 
 // Node.js environment imports
 if (typeof module !== 'undefined' && module.exports) {
     try {
-        ethers = require('ethers');
-        const { DatabaseManager } = require('./database');
-        const { PublisherSigner } = require('./cryptography');
-        const { PUBLISHER_KEYS } = require('./publisher-keys');
+        const ethersModule = require('ethers');
+        const { DatabaseManager: DBManager } = require('./database');
+        const { PublisherSigner: PubSigner } = require('./cryptography');
+        const { PUBLISHER_KEYS: PubKeys } = require('./publisher-keys');
+        
+        ethers = ethersModule;
+        global.DatabaseManager = DBManager;  // Store in global for helper function
+        global.PublisherSigner = PubSigner;
+        global.PUBLISHER_KEYS = PubKeys;
         
         module.exports.ethers = ethers;
-        module.exports.DatabaseManager = DatabaseManager;
-        module.exports.PublisherSigner = PublisherSigner;
-        module.exports.PUBLISHER_KEYS = PUBLISHER_KEYS;
+        module.exports.DatabaseManager = DBManager;
+        module.exports.PublisherSigner = PubSigner;
+        module.exports.PUBLISHER_KEYS = PubKeys;
     } catch (error) {
         console.warn('zkAffinityAgent: Node.js dependencies not available, browser mode only');
     }
 } else if (typeof window !== 'undefined') {
     // Browser environment - dependencies should be loaded via script tags
+    console.log('🌐 zkAffinityAgent loading in browser environment');
+    console.log('Initial window check:', {
+        ethers: !!window.ethers,
+        DatabaseManager: !!window.DatabaseManager,
+        PublisherSigner: !!window.PublisherSigner,
+        PUBLISHER_KEYS: !!window.PUBLISHER_KEYS
+    });
+    
     ethers = window.ethers;
-    DatabaseManager = window.DatabaseManager;
-    PublisherSigner = window.PublisherSigner;
-    PUBLISHER_KEYS = window.PUBLISHER_KEYS;
+    // Don't assign variables - use helper functions instead to avoid conflicts
+    
+    console.log('After assignment:', {
+        ethers: !!ethers,
+        DatabaseManager: !!getDatabaseManager(),
+        PublisherSigner: !!getPublisherSigner(),
+        PUBLISHER_KEYS: !!getPublisherKeys()
+    });
 }
 
 /**
@@ -60,30 +108,52 @@ class AttestationError extends ZkAffinityAgentError {
  */
 class ZkAffinityAgent {
     constructor() {
-        // Implement singleton pattern
-        if (ZkAffinityAgent.instance) {
-            return ZkAffinityAgent.instance;
-        }
-
-        // Initialize core properties
-        this.wallet = null;
-        this.isInitialized = false;
-        this.profileSigned = false;
-        this.attestations = [];
-        this.currentPublisher = null;
-        this.dbManager = null;
-
-        // Modal state management
-        this.currentModal = null;
-        this.modalCount = 0;
-
-        // Event listeners cleanup
-        this.eventListeners = [];
-
-        // Store singleton instance
-        ZkAffinityAgent.instance = this;
+        console.log('🔧 ZkAffinityAgent constructor starting...');
         
-        console.log('🎯 ZkAffinityAgent singleton initialized');
+        // Initialize state
+        this.wallet = null;
+        this.attestations = [];
+        this.profileSigned = false;
+        this.isInitialized = false;
+        this.currentPublisher = null;
+        this.currentModal = null;
+        this.eventListeners = [];
+        this.modal = null;
+        this.modalStyles = null;
+        
+        console.log('🔧 ZkAffinityAgent constructor - state initialized');
+        
+        // Validate dependencies
+        if (!ethers) {
+            console.error('❌ ZkAffinityAgent constructor: ethers not available');
+            throw new ZkAffinityAgentError('Ethers library not available');
+        }
+        if (!getDatabaseManager()) {
+            console.error('❌ ZkAffinityAgent constructor: DatabaseManager not available');
+            throw new ZkAffinityAgentError('DatabaseManager not available');
+        }
+        if (!getPublisherSigner()) {
+            console.error('❌ ZkAffinityAgent constructor: PublisherSigner not available');
+            throw new ZkAffinityAgentError('PublisherSigner not available');
+        }
+        if (!getPublisherKeys()) {
+            console.error('❌ ZkAffinityAgent constructor: PUBLISHER_KEYS not available');
+            throw new ZkAffinityAgentError('PUBLISHER_KEYS not available');
+        }
+        
+        console.log('🔧 ZkAffinityAgent constructor - dependencies validated');
+        
+        // Initialize components
+        const DatabaseManager = getDatabaseManager();
+        this.dbManager = new DatabaseManager();
+        // Note: PublisherSigner is created per-request in createAttestation() with proper parameters
+        
+        console.log('🔧 ZkAffinityAgent constructor - components initialized');
+        
+        // Bind methods to preserve 'this' context
+        this.initializeWallet = this.initializeWallet.bind(this);
+        
+        console.log('🔧 ZkAffinityAgent constructor completed successfully');
     }
 
     /**
@@ -101,14 +171,30 @@ class ZkAffinityAgent {
                 throw new WalletError('Ethers.js not available. Please include ethers library.');
             }
 
-            // Create random wallet for demo purposes
-            this.wallet = ethers.Wallet.createRandom();
-            this.isInitialized = true;
+            // Check localStorage for existing wallet (for testing)
+            if (typeof window !== 'undefined') {
+                const storedPrivateKey = localStorage.getItem('zkAffinity_privateKey');
+                const storedAddress = localStorage.getItem('zkAffinity_walletAddress');
+                
+                if (storedPrivateKey && storedAddress) {
+                    this.wallet = new ethers.Wallet(storedPrivateKey);
+                    console.log('🔑 Wallet loaded from localStorage:', this.wallet.address);
+                } else {
+                    // Create random wallet for demo purposes
+                    this.wallet = ethers.Wallet.createRandom();
+                    console.log('🔑 New wallet created:', this.wallet.address);
+                }
+            } else {
+                // Node.js environment - create random wallet
+                this.wallet = ethers.Wallet.createRandom();
+                console.log('🔑 New wallet created (Node.js):', this.wallet.address);
+            }
 
-            console.log('🔑 New wallet created:', this.wallet.address);
+            this.isInitialized = true;
             console.log('🔑 Wallet initialized successfully');
 
             // Initialize database manager if in Node.js environment
+            const DatabaseManager = getDatabaseManager();
             if (DatabaseManager && !this.dbManager) {
                 this.dbManager = new DatabaseManager();
                 await this.dbManager.initializeDatabase();
@@ -242,6 +328,8 @@ class ZkAffinityAgent {
      */
     async createAttestation(adTag, walletAddress, publisher) {
         try {
+            const PublisherSigner = getPublisherSigner();
+            const PUBLISHER_KEYS = getPublisherKeys();
             if (!PublisherSigner || !PUBLISHER_KEYS) {
                 throw new AttestationError('Cryptography modules not available');
             }
@@ -290,6 +378,12 @@ class ZkAffinityAgent {
 
                 // Remove any existing modals
                 this.closeCurrentModal();
+
+                // Hide any existing HTML modal that might conflict
+                const existingModal = document.getElementById('adModalOverlay');
+                if (existingModal) {
+                    existingModal.style.display = 'none';
+                }
 
                 // Create modal overlay
                 const overlay = document.createElement('div');
@@ -345,7 +439,7 @@ class ZkAffinityAgent {
                         ${adContent}
                     </div>
                     <div class="ad-actions" style="margin-top: 30px; text-align: center;">
-                        <button class="ad-interact-btn" style="
+                        <button id="adActionBtn" class="ad-interact-btn" style="
                             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                             color: white;
                             border: none;
@@ -393,7 +487,7 @@ class ZkAffinityAgent {
                     resolve();
                 };
 
-                const interactBtn = modal.querySelector('.ad-interact-btn');
+                const interactBtn = modal.querySelector('#adActionBtn');
                 const skipBtn = modal.querySelector('.ad-skip-btn');
                 const closeBtn = modal.querySelector('.modal-close');
 
@@ -494,7 +588,7 @@ class ZkAffinityAgent {
         return `
             <div style="text-align: center;">
                 <div style="font-size: 48px; margin-bottom: 20px;">${ad.emoji}</div>
-                <h2 style="color: #333; margin-bottom: 15px;">${ad.title}</h2>
+                <h2 id="adModalTitle" style="color: #333; margin-bottom: 15px;">${ad.title}</h2>
                 <p style="font-size: 16px; color: #666; margin-bottom: 25px;">${ad.description}</p>
                 <ul style="text-align: left; max-width: 300px; margin: 0 auto;">
                     ${ad.features.map(feature => `<li style="margin-bottom: 8px; color: #555;">${feature}</li>`).join('')}
@@ -798,11 +892,24 @@ if (typeof module !== 'undefined' && module.exports) {
 
 // Global singleton for browser environment
 if (typeof window !== 'undefined') {
-    window.zkAffinityAgent = new ZkAffinityAgent();
-    window.ZkAffinityAgent = ZkAffinityAgent;
-    window.ZkAffinityAgentError = ZkAffinityAgentError;
-    window.WalletError = WalletError;
-    window.AttestationError = AttestationError;
-    
-    console.log('🌐 zkAffinityAgent available globally as window.zkAffinityAgent');
+    try {
+        console.log('🚀 Attempting to create zkAffinityAgent singleton...');
+        console.log('Dependencies check:', {
+            ethers: !!ethers,
+            DatabaseManager: !!getDatabaseManager(),
+            PublisherSigner: !!getPublisherSigner(),
+            PUBLISHER_KEYS: !!getPublisherKeys()
+        });
+        
+        window.zkAffinityAgent = new ZkAffinityAgent();
+        window.ZkAffinityAgent = ZkAffinityAgent;
+        window.ZkAffinityAgentError = ZkAffinityAgentError;
+        window.WalletError = WalletError;
+        window.AttestationError = AttestationError;
+        
+        console.log('🌐 zkAffinityAgent available globally as window.zkAffinityAgent');
+    } catch (error) {
+        console.error('❌ Failed to create zkAffinityAgent singleton:', error);
+        console.error('Error details:', error.message, error.stack);
+    }
 } 
