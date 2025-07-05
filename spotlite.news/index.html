@@ -238,10 +238,33 @@
                     return;
                 }
                 
-                // Request ad with exact parameters as specified in implementation details
-                console.log('🔍 Requesting finance ad with threshold 2...');
+                // 🎯 NEW: Dynamic ad targeting - check what user qualifies for
+                console.log('🔍 Checking what ad categories user qualifies for...');
+                const qualifiedTags = await window.zkAffinityAgent.getQualifiedTags(2);
+                const bestTag = await window.zkAffinityAgent.getBestQualifiedTag(2);
+                
+                console.log('📊 Qualified categories:', qualifiedTags);
+                console.log('🏆 Best category:', bestTag);
+                
+                if (!bestTag) {
+                    console.log('❌ User does not qualify for any ad categories');
+                    renderNoAd();
+                    
+                    // Show debug info for no qualifying categories
+                    showProofDebug({
+                        qualified: false,
+                        reason: 'No qualifying categories found',
+                        qualifiedTags,
+                        threshold: 2,
+                        timestamp: Date.now()
+                    });
+                    return;
+                }
+                
+                // Request ad for the best qualifying category
+                console.log(`🔍 Requesting ${bestTag} ad with threshold 2...`);
                 const result = await window.zkAffinityAgent.requestAd({ 
-                    tag: "finance", 
+                    tag: bestTag, 
                     threshold: 2 
                 });
                 
@@ -249,10 +272,10 @@
                 
                 // Check if user qualifies for targeted ads
                 if (result.qualified && result.adContent) {
-                    console.log('✅ ZK proof verified - rendering targeted ad');
+                    console.log(`✅ ZK proof verified - rendering targeted ${bestTag} ad`);
                     
-                    // Render the ad using adRenderer.js with the finance tag
-                    await renderAd("finance");
+                    // Render the ad using adRenderer.js with the dynamic tag
+                    await renderAd(bestTag);
                     
                     // Show debug info for judges
                     showProofDebug(result);
@@ -292,11 +315,21 @@
             console.log('🎬 Running full demo flow...');
             
             try {
-                const result = await window.zkAffinityAgent.requestAd({ tag: "finance", threshold: 2 });
+                // Dynamic demo - check what user qualifies for
+                const bestTag = await window.zkAffinityAgent.getBestQualifiedTag(2);
+                
+                if (!bestTag) {
+                    console.log('❌ User does not qualify for any categories');
+                    renderNoAd();
+                    return { qualified: false, reason: 'No qualifying categories' };
+                }
+                
+                console.log(`🎯 Demo using best category: ${bestTag}`);
+                const result = await window.zkAffinityAgent.requestAd({ tag: bestTag, threshold: 2 });
                 console.log('Demo result:', result);
                 
                 if (result.qualified && result.adContent) {
-                    await renderAd("finance");
+                    await renderAd(bestTag);
                     showProofDebug(result);
                 } else {
                     renderNoAd();

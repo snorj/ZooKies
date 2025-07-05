@@ -31,6 +31,11 @@ try {
 // Initialize global variables with fallback for missing dependencies
 let ethers, openDBRef;
 
+// Avoid duplicate declarations
+if (typeof window !== 'undefined' && typeof window.DB_NAME === 'undefined') {
+    window.DB_NAME = 'ZooKiesDB';
+}
+
 try {
     // Try to access ethers from global scope
     ethers = window.ethers;
@@ -39,8 +44,9 @@ try {
     }
 
     // Try to access IndexedDB helper (avoid conflicts with existing openDB)
-    if (window.idb && window.idb.openDB && typeof window.openDB === 'undefined') {
+    if (window.idb && window.idb.openDB && typeof window.openDBRef === 'undefined') {
         openDBRef = window.idb.openDB;
+        window.openDBRef = openDBRef;
     } else if (window.idb && window.idb.openDB) {
         openDBRef = window.idb.openDB;
     }

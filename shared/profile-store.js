@@ -1,10 +1,21 @@
-// Use global idb library (loaded via UMD)
-const { openDB } = window.idb || {};
+// Use global idb library (loaded via UMD) - avoid duplicate declarations
+let openDB;
+if (typeof window !== 'undefined' && window.idb && window.idb.openDB) {
+    if (typeof window.openDB === 'undefined') {
+        openDB = window.idb.openDB;
+        window.openDB = openDB;
+    } else {
+        openDB = window.openDB;
+    }
+} else {
+    console.warn('IndexedDB wrapper not available');
+}
+
 // Import Privy functions from global object
 const { getEmbeddedWallet, createSignedProfileClaim } = window.privyModule || {};
 
-// Constants
-const DB_NAME = 'zookies_privy_cache';
+// Constants - avoid duplicate declarations
+const DB_NAME = typeof window !== 'undefined' && window.DB_NAME ? window.DB_NAME + '_profiles' : 'zookies_privy_cache';
 const DB_VERSION = 1;
 const PROFILES_STORE = 'profiles';
 const ATTESTATIONS_STORE = 'attestations';

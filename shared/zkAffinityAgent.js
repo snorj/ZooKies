@@ -1669,6 +1669,83 @@ class ZkAffinityAgent {
         console.warn('⚠️ ZkProofBuilder not available');
         return null;
     }
+
+    /**
+     * Get all tags that the user qualifies for (has enough attestations)
+     * @param {number} threshold - Minimum attestation threshold (default: 2)
+     * @returns {Promise<Array>} Array of qualified tag names
+     */
+    async getQualifiedTags(threshold = 2) {
+        try {
+            console.log(`🔍 Checking which tags user qualifies for (threshold: ${threshold})`);
+            
+            // Ensure wallet is initialized first
+            await this.ensureWalletAndProfile();
+            
+            // Get all attestations for current wallet
+            let attestations = [];
+            if (this.dbManager && typeof this.dbManager.getAllAttestations === 'function') {
+                attestations = await this.dbManager.getAllAttestations(this.wallet.address);
+            } else {
+                attestations = [...this.attestations];
+            }
+
+            console.log(`📊 Checking ${attestations.length} total attestations`);
+
+            // Available tag categories
+            const availableTags = ['finance', 'travel', 'privacy', 'gaming', 'technology'];
+            const qualifiedTags = [];
+
+            // Check each tag
+            for (const tag of availableTags) {
+                const matchingAttestations = attestations.filter(a => a.tag === tag);
+                if (matchingAttestations.length >= threshold) {
+                    qualifiedTags.push({
+                        tag,
+                        count: matchingAttestations.length,
+                        qualified: true
+                    });
+                    console.log(`✅ Qualified for ${tag}: ${matchingAttestations.length} attestations`);
+                } else {
+                    console.log(`❌ Not qualified for ${tag}: ${matchingAttestations.length}/${threshold} attestations`);
+                }
+            }
+
+            console.log(`🎯 User qualifies for ${qualifiedTags.length} categories:`, qualifiedTags.map(t => t.tag));
+            return qualifiedTags;
+
+        } catch (error) {
+            console.error('❌ Failed to get qualified tags:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Get the best tag to request an ad for (highest attestation count)
+     * @param {number} threshold - Minimum attestation threshold (default: 2)
+     * @returns {Promise<string|null>} Best tag name or null if none qualify
+     */
+    async getBestQualifiedTag(threshold = 2) {
+        try {
+            const qualifiedTags = await this.getQualifiedTags(threshold);
+            
+            if (qualifiedTags.length === 0) {
+                console.log('❌ User does not qualify for any ad categories');
+                return null;
+            }
+
+            // Sort by attestation count (highest first)
+            qualifiedTags.sort((a, b) => b.count - a.count);
+            const bestTag = qualifiedTags[0].tag;
+            
+            console.log(`🏆 Best qualified tag: ${bestTag} (${qualifiedTags[0].count} attestations)`);
+            return bestTag;
+
+        } catch (error) {
+            console.error('❌ Failed to get best qualified tag:', error);
+            return null;
+        }
+    }
 }
 
 // Export for Node.js environment
