@@ -1,0 +1,351 @@
+/* Ad Container Styles */
+.ad-container {
+    margin: 2rem 0;
+    padding: 1rem;
+    background: #f8f9fa;
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    min-height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.ad-container.has-ad {
+    background: white;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.ad-container::before {
+    content: "📢 Sponsored Content";
+    position: absolute;
+    top: -10px;
+    left: 15px;
+    background: #6c757d;
+    color: white;
+    padding: 0.2rem 0.8rem;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    z-index: 10;
+}
+
+/* Primary Ad Container */
+.primary-ad {
+    margin: 2.5rem 0;
+    min-height: 200px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+/* Sidebar Ad Container */
+.sidebar-ad {
+    min-height: 150px;
+}
+
+/* Ad Placeholder */
+.ad-placeholder {
+    text-align: center;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.ad-placeholder p {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+/* Ad Card Styles */
+.ad-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 8px 25px rgba(102,126,234,0.3);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    max-width: 100%;
+}
+
+.ad-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+    z-index: 1;
+}
+
+.ad-card > * {
+    position: relative;
+    z-index: 2;
+}
+
+.ad-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 35px rgba(102,126,234,0.4);
+}
+
+/* Finance Ad Variant */
+.ad-card.finance {
+    background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+    box-shadow: 0 8px 25px rgba(46,204,113,0.3);
+}
+
+.ad-card.finance:hover {
+    box-shadow: 0 12px 35px rgba(46,204,113,0.4);
+}
+
+/* Travel Ad Variant */
+.ad-card.travel {
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    box-shadow: 0 8px 25px rgba(52,152,219,0.3);
+}
+
+.ad-card.travel:hover {
+    box-shadow: 0 12px 35px rgba(52,152,219,0.4);
+}
+
+/* Privacy Ad Variant */
+.ad-card.privacy {
+    background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+    box-shadow: 0 8px 25px rgba(155,89,182,0.3);
+}
+
+.ad-card.privacy:hover {
+    box-shadow: 0 12px 35px rgba(155,89,182,0.4);
+}
+
+/* Gaming Ad Variant */
+.ad-card.gaming {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    box-shadow: 0 8px 25px rgba(231,76,60,0.3);
+}
+
+.ad-card.gaming:hover {
+    box-shadow: 0 12px 35px rgba(231,76,60,0.4);
+}
+
+/* Technology Ad Variant */
+.ad-card.technology {
+    background: linear-gradient(135deg, #f39c12 0%, #d68910 100%);
+    box-shadow: 0 8px 25px rgba(243,156,18,0.3);
+}
+
+.ad-card.technology:hover {
+    box-shadow: 0 12px 35px rgba(243,156,18,0.4);
+}
+
+/* Ad Content */
+.ad-emoji {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 1rem;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.ad-headline {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    line-height: 1.2;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.ad-description {
+    font-size: 1.1rem;
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+    opacity: 0.95;
+}
+
+.ad-cta {
+    display: inline-block;
+    background: rgba(255,255,255,0.2);
+    color: white;
+    padding: 0.8rem 2rem;
+    border-radius: 25px;
+    text-decoration: none;
+    font-weight: 600;
+    border: 2px solid rgba(255,255,255,0.3);
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.ad-cta:hover {
+    background: rgba(255,255,255,0.3);
+    color: white;
+    border-color: rgba(255,255,255,0.5);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+/* Ad Loading States */
+.ad-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.ad-loading::before {
+    content: '';
+    width: 20px;
+    height: 20px;
+    border: 2px solid #dee2e6;
+    border-top-color: #6c757d;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.ad-error {
+    color: #e74c3c;
+    text-align: center;
+    font-style: italic;
+}
+
+.ad-no-match {
+    color: #6c757d;
+    text-align: center;
+    font-style: italic;
+    opacity: 0.8;
+}
+
+/* Ad Proof Badge */
+.ad-proof-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(255,255,255,0.2);
+    color: white;
+    padding: 0.3rem 0.8rem;
+    border-radius: 15px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.3);
+}
+
+.ad-proof-badge.verified {
+    background: rgba(46,204,113,0.8);
+    border-color: rgba(46,204,113,0.5);
+}
+
+/* Animation Keyframes */
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes adSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes adPulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.02);
+    }
+}
+
+.ad-card {
+    animation: adSlideIn 0.5s ease-out;
+}
+
+.ad-card:hover {
+    animation: adPulse 0.3s ease-in-out;
+}
+
+/* ZK Proof Verification Indicator */
+.zk-verified {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(46,204,113,0.2);
+    color: #27ae60;
+    padding: 0.3rem 0.8rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-top: 1rem;
+}
+
+.zk-verified::before {
+    content: '🔐';
+    font-size: 1rem;
+}
+
+/* Multiple Ad Slots (Future Extension) */
+.ad-slots {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin: 2rem 0;
+}
+
+/* Responsive Ad Styles */
+@media (max-width: 768px) {
+    .ad-card {
+        padding: 1.5rem;
+    }
+    
+    .ad-headline {
+        font-size: 1.3rem;
+    }
+    
+    .ad-emoji {
+        font-size: 2.5rem;
+    }
+    
+    .primary-ad {
+        min-height: 150px;
+        margin: 1.5rem 0;
+    }
+    
+    .sidebar-ad {
+        min-height: 120px;
+    }
+}
+
+@media (max-width: 480px) {
+    .ad-card {
+        padding: 1rem;
+    }
+    
+    .ad-headline {
+        font-size: 1.2rem;
+    }
+    
+    .ad-description {
+        font-size: 1rem;
+    }
+    
+    .ad-cta {
+        padding: 0.6rem 1.5rem;
+        font-size: 0.9rem;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .ad-container {
+        display: none;
+    }
+} 
