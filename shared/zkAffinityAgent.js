@@ -1196,7 +1196,7 @@ class ZkAffinityAgent {
             // Load attestations from IndexedDB
             let attestations = [];
             if (this.dbManager && this.dbManager.getAllAttestations) {
-                attestations = await this.dbManager.getAllAttestations();
+                attestations = await this.dbManager.getAllAttestations(this.wallet.address);
             } else {
                 // Fallback to in-memory attestations
                 attestations = [...this.attestations];

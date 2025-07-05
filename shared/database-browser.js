@@ -665,8 +665,8 @@ if (typeof window !== 'undefined') {
     window.ValidationError = ValidationError;
     window.getBrowserDatabase = getBrowserDatabase;
     
-    // Debug helpers for development
-    if (process.env.NODE_ENV !== 'production') {
+    // Debug helpers for development (browser environment)
+    if (typeof window !== 'undefined' && typeof process === 'undefined') {
         window.zkAgent = window.zkAgent || {};
         window.zkAgent.browserDB = {
             getInstance: getBrowserDatabase,

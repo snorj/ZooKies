@@ -6,6 +6,11 @@
 
 console.log('🟢 zkProofBuilder.js loading...');
 
+// Prevent multiple execution
+if (typeof window !== 'undefined' && window.ZkProofBuilder) {
+    console.log('⚠️ zkProofBuilder.js already loaded, skipping...');
+} else {
+
 // Browser-compatible imports and dependencies
 let snarkjs, crypto;
 
@@ -81,6 +86,15 @@ const CIRCUIT_PATHS = {
     wasm: '/circom/build/circuits/ThresholdProof_js/ThresholdProof.wasm',
     zkey: '/circom/build/keys/ThresholdProof_final.zkey',
     verificationKey: '/circom/build/keys/verification_key.json'
+};
+
+/**
+ * Circuit constraints - must match the circuit compilation parameters
+ */
+const CIRCUIT_CONSTRAINTS = {
+    MAX_ATTESTATIONS: 50, // Must match ThresholdProof(50) in the circuit
+    DEFAULT_HASH: '0x0000000000000000000000000000000000000000000000000000000000000000',
+    DEFAULT_TAG: 0
 };
 
 /**
@@ -520,24 +534,32 @@ class ZkProofBuilder {
             const attestationHashes = await this.processAttestationHashes(verifiedAttestations);
             const tagIndices = this.mapAttestationTags(verifiedAttestations);
 
+            // Pad arrays to match circuit constraints (exactly 50 elements)
+            const paddedHashes = [...attestationHashes];
+            const paddedTags = [...tagIndices];
+            
+            while (paddedHashes.length < CIRCUIT_CONSTRAINTS.MAX_ATTESTATIONS) {
+                paddedHashes.push(CIRCUIT_CONSTRAINTS.DEFAULT_HASH);
+                paddedTags.push(CIRCUIT_CONSTRAINTS.DEFAULT_TAG);
+            }
+
             // Get wallet signature components (r, s) from signedProfileClaim
             const walletSig = await this.extractWalletSignature(profileWallet);
 
             // Prepare final circuit inputs
             const circuitInputs = {
-                attestationHashes: attestationHashes,
-                tagIndices: tagIndices,
+                attestationHashes: paddedHashes,
+                tagIndices: paddedTags,
                 walletSig: walletSig,
                 targetTag: TAG_DICTIONARY[tag],
-                threshold: threshold,
-                walletAddress: profileWallet
+                threshold: threshold
             };
 
             console.log('🔧 Circuit inputs prepared:', {
                 attestationCount: attestationHashes.length,
+                paddedArrayLength: paddedHashes.length,
                 targetTag: tag,
-                threshold: threshold,
-                walletAddress: profileWallet
+                threshold: threshold
             });
 
             return circuitInputs;
@@ -584,11 +606,11 @@ class ZkProofBuilder {
                 progressCallback({ message: 'Preparing circuit files...', percentage: 0 });
             }
 
-            // Load circuit files with caching
-            await this.loadCircuitFiles(progressCallback);
+            // Skip file loading - use URLs directly for better memory efficiency
+            console.log('ℹ️ Using direct URL access to circuit files');
             
             if (progressCallback) {
-                progressCallback({ message: 'Generating zero-knowledge proof...', percentage: 60 });
+                progressCallback({ message: 'Generating zero-knowledge proof...', percentage: 30 });
             }
 
             // Setup timeout for proof generation
@@ -652,11 +674,11 @@ class ZkProofBuilder {
             }, BROWSER_CONFIG.PROOF_TIMEOUT);
 
             try {
-                // Generate proof using browser-loaded circuit files
+                // Generate proof using circuit file URLs (more memory efficient)
                 const { proof, publicSignals } = await snarkjs.groth16.fullProve(
                     circuitInputs,
-                    this.circuitFiles.wasm,
-                    this.circuitFiles.zkey
+                    CIRCUIT_PATHS.wasm,
+                    CIRCUIT_PATHS.zkey
                 );
 
                 clearTimeout(timeout);
@@ -1086,4 +1108,6 @@ if (typeof window !== 'undefined') {
     };
 }
 
-console.log('✅ zkProofBuilder.js loaded successfully'); 
+console.log('✅ zkProofBuilder.js loaded successfully');
+
+} // End of guard block 

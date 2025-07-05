@@ -252,8 +252,8 @@ if (typeof window !== 'undefined') {
         clearAllProfiles
     };
     
-    // Debug helpers
-    if (process.env.NODE_ENV !== 'production') {
+    // Debug helpers (browser environment)
+    if (typeof window !== 'undefined' && typeof process === 'undefined') {
         window.zkAgent = window.zkAgent || {};
         window.zkAgent.profiles = {
             getAll: getAllProfiles,

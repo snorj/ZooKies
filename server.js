@@ -87,10 +87,14 @@ app.use((req, res, next) => {
  */
 app.use('/themodernbyte', express.static(path.join(__dirname, 'themodernbyte')));
 app.use('/smartlivingguide', express.static(path.join(__dirname, 'smartlivingguide')));
+app.use('/spotlite.news', express.static(path.join(__dirname, 'spotlite.news')));
 app.use('/shared', express.static(path.join(__dirname, 'shared')));
 app.use('/lib', express.static(path.join(__dirname, 'lib')));
 // Fallback to node_modules for library files
 app.use('/lib', express.static(path.join(__dirname, 'node_modules')));
+
+// Serve circom build files for ZK proof generation
+app.use('/circom', express.static(path.join(__dirname, 'circom')));
 
 // Serve specific ethers files from node_modules as fallback
 app.get('/lib/ethers/*', (req, res, next) => {
@@ -111,7 +115,8 @@ app.get('/', (req, res) => {
     endpoints: {
       publishers: {
         themodernbyte: '/themodernbyte',
-        smartlivingguide: '/smartlivingguide'
+        smartlivingguide: '/smartlivingguide',
+        spotlite: '/spotlite.news'
       },
       api: {
         health: '/api/health',
@@ -137,6 +142,10 @@ app.get('/themodernbyte', (req, res) => {
 
 app.get('/smartlivingguide', (req, res) => {
   res.sendFile(path.join(__dirname, 'smartlivingguide', 'index.html'));
+});
+
+app.get('/spotlite.news', (req, res) => {
+  res.sendFile(path.join(__dirname, 'spotlite.news', 'index.html'));
 });
 
 /**

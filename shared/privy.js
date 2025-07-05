@@ -92,7 +92,7 @@ async function initializeDB() {
 }
 
 // Updated Privy configuration
-export const privyConfig = {
+const privyConfig = {
     appId: PRIVY_APP_ID,
     embeddedWallets: {
         ethereum: {
@@ -107,13 +107,13 @@ export const privyConfig = {
 };
 
 // Alternative export name for compatibility
-export const PRIVY_CONFIG = privyConfig;
+const PRIVY_CONFIG = privyConfig;
 
 /**
  * Initialize Privy SDK with embedded wallet configuration
  * @returns {Promise<{success: boolean, error?: string}>}
  */
-export async function initPrivy() {
+async function initPrivy() {
     try {
         await initializeDB();
         
@@ -135,7 +135,7 @@ export async function initPrivy() {
  * Get or create the global wallet that persists across all sites
  * @returns {Promise<{wallet: object|null, error?: string}>}
  */
-export async function getEmbeddedWallet() {
+async function getEmbeddedWallet() {
     try {
         // Try to use Privy if available
         if (privyAvailable && useWallets) {
@@ -211,7 +211,7 @@ export async function getEmbeddedWallet() {
  * Create a signed profile claim for the global wallet
  * @returns {Promise<{success: boolean, claim?: object, error?: string}>}
  */
-export async function createSignedProfileClaim() {
+async function createSignedProfileClaim() {
     try {
         const { wallet, error } = await getEmbeddedWallet();
         if (error || !wallet) {
@@ -260,7 +260,7 @@ export async function createSignedProfileClaim() {
  * Get the current global profile from storage
  * @returns {Promise<{profile?: object, error?: string}>}
  */
-export async function getProfile() {
+async function getProfile() {
     try {
         const { wallet, error } = await getEmbeddedWallet();
         if (error || !wallet) {
@@ -284,7 +284,7 @@ export async function getProfile() {
  * Debug helper to expose wallet information
  * @returns {Promise<{address?: string, provider?: object, error?: string}>}
  */
-export async function getWalletDebugInfo() {
+async function getWalletDebugInfo() {
     try {
         const { wallet, error } = await getEmbeddedWallet();
         if (error || !wallet) {
@@ -303,8 +303,18 @@ export async function getWalletDebugInfo() {
     }
 }
 
-// Expose debug helper on window object
+// Expose main functions on window object
 if (typeof window !== 'undefined') {
+    // Main Privy functions
+    window.privyConfig = privyConfig;
+    window.PRIVY_CONFIG = PRIVY_CONFIG;
+    window.initPrivy = initPrivy;
+    window.getEmbeddedWallet = getEmbeddedWallet;
+    window.createSignedProfileClaim = createSignedProfileClaim;
+    window.getProfile = getProfile;
+    window.getWalletDebugInfo = getWalletDebugInfo;
+    
+    // Debug helpers
     window.zkAgent = window.zkAgent || {};
     window.zkAgent.getWallet = getWalletDebugInfo;
     window.zkAgent.privyAvailable = () => privyAvailable;
