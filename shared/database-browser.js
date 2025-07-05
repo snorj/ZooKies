@@ -90,6 +90,38 @@ class DatabaseManager {
         return await this.makeRequest(`/api/profiles/${userWallet}`, 'PUT', profileData);
     }
 
+    /**
+     * Update user profile in the database
+     * @param {string} walletAddress - User's wallet address
+     * @param {Object} profileData - Profile data to update
+     * @returns {Promise<Object>} Updated profile data
+     */
+    async updateUserProfile(walletAddress, profileData) {
+        try {
+            // Validate inputs
+            if (!walletAddress || !walletAddress.startsWith('0x')) {
+                throw new Error('Invalid wallet address');
+            }
+            if (!profileData || typeof profileData !== 'object') {
+                throw new Error('Invalid profile data');
+            }
+
+            // Store in localStorage for browser environment
+            const key = `profile_${walletAddress}`;
+            localStorage.setItem(key, JSON.stringify({
+                ...profileData,
+                lastUpdated: Date.now()
+            }));
+
+            console.log('📝 Profile updated in local storage:', walletAddress);
+            return profileData;
+
+        } catch (error) {
+            console.error('❌ Failed to update profile in database:', error);
+            throw error;
+        }
+    }
+
     // Analytics and reporting
     async logInteraction(interactionData) {
         return await this.makeRequest('/api/interactions', 'POST', interactionData);

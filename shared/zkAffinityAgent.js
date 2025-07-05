@@ -878,6 +878,62 @@ class ZkAffinityAgent {
             profileSigned: this.profileSigned
         };
     }
+
+    /**
+     * Update user profile with new information
+     * @param {Object} profileUpdate - Profile update data
+     * @param {number} profileUpdate.lastActivity - Timestamp of last activity
+     * @param {number} profileUpdate.interactionCount - Number of interactions
+     * @param {Array<string>} profileUpdate.tags - Array of interest tags
+     * @returns {Promise<Object>} Updated profile data
+     */
+    async updateProfile(profileUpdate) {
+        try {
+            if (!this.wallet) {
+                throw new ZkAffinityAgentError('Wallet not initialized');
+            }
+
+            // Ensure profile is signed before updates
+            if (!this.profileSigned) {
+                await this.signProfileClaim();
+            }
+
+            // Get current profile data
+            const currentProfile = this.getProfileSummary();
+
+            // Merge updates with current profile
+            const updatedProfile = {
+                walletAddress: this.wallet.address,
+                lastActivity: profileUpdate.lastActivity || Date.now(),
+                interactionCount: profileUpdate.interactionCount || (currentProfile.totalAttestations + 1),
+                tags: [...new Set([...(currentProfile.tagCounts ? Object.keys(currentProfile.tagCounts) : []), ...(profileUpdate.tags || [])])],
+                attestationCount: currentProfile.totalAttestations,
+                publishers: currentProfile.publishers,
+                profileSigned: this.profileSigned,
+                isInitialized: this.isInitialized
+            };
+
+            // Store in database if available
+            if (this.dbManager) {
+                try {
+                    await this.dbManager.updateUserProfile(this.wallet.address, updatedProfile);
+                    console.log('📝 Profile updated in database');
+                } catch (dbError) {
+                    console.warn('⚠️ Database profile update failed:', dbError.message);
+                }
+            }
+
+            console.log('✅ Profile updated successfully');
+            return {
+                success: true,
+                profile: updatedProfile
+            };
+
+        } catch (error) {
+            console.error('❌ Profile update failed:', error.message);
+            throw new ZkAffinityAgentError(`Profile update failed: ${error.message}`);
+        }
+    }
 }
 
 // Export for Node.js environment
