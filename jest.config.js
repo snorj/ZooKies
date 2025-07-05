@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   testEnvironment: 'node',
   testTimeout: 30000,
   collectCoverageFrom: [
@@ -9,5 +9,10 @@ module.exports = {
     '/node_modules/',
     '/scripts/'
   ],
-  verbose: true
+  verbose: true,
+  transform: {},
+  moduleNameMapper: {
+    '^(\\.{1,2}/.*)\\.js$': '$1'
+  },
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js']
 }; 
