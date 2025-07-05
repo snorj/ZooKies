@@ -19,6 +19,12 @@
                     <li><a href="#finance" class="nav-link">Finance</a></li>
                     <li><a href="#privacy" class="nav-link">Privacy</a></li>
                 </ul>
+                <!-- Wallet Debug Viewer -->
+                <div class="wallet-debug" id="walletDebug">
+                    <span class="wallet-label">Wallet:</span>
+                    <span class="wallet-address" id="walletAddress">Connecting...</span>
+                    <button class="wallet-refresh" id="walletRefresh" onclick="refreshWalletDisplay()" title="Refresh wallet info">🔄</button>
+                </div>
             </div>
         </nav>
     </header>
