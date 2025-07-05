@@ -7,11 +7,27 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
+
+// ZK Proof verification dependencies
+const snarkjs = require('snarkjs');
+let verificationKey;
 
 // Import custom modules
 const { DatabaseManager, DatabaseError, ValidationError } = require('./shared/database');
 const { PublisherSigner, SignatureVerificationError } = require('./shared/cryptography');
 const { PUBLISHER_KEYS } = require('./shared/publisher-keys');
+
+// Load verification key for ZK proof verification
+try {
+  const vkPath = path.join(__dirname, 'circom', 'build', 'keys', 'verification_key.json');
+  verificationKey = JSON.parse(fs.readFileSync(vkPath, 'utf8'));
+  console.log('✅ ZK verification key loaded successfully');
+} catch (error) {
+  console.warn('⚠️ Warning: ZK verification key not found - proof verification will be disabled');
+  console.warn('   Expected path:', path.join(__dirname, 'circom', 'build', 'keys', 'verification_key.json'));
+  verificationKey = null;
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -79,8 +95,14 @@ app.get('/', (req, res) => {
         health: '/api/health',
         storeAttestation: 'POST /api/store-attestation',
         getProfile: 'GET /api/profile/:wallet',
-        resetProfile: 'DELETE /api/reset-profile/:wallet'
+        resetProfile: 'DELETE /api/reset-profile/:wallet',
+        verifyProof: 'POST /api/verify-proof',
+        verificationKey: 'GET /api/verification-key'
       }
+    },
+    zkProof: {
+      available: !!verificationKey,
+      message: verificationKey ? 'ZK proof verification enabled' : 'ZK proof verification disabled - verification key not loaded'
     },
     timestamp: new Date().toISOString()
   });
@@ -396,6 +418,209 @@ app.get('/api/publishers', (req, res) => {
     res.status(500).json({ 
       error: 'Failed to retrieve publisher information',
       code: 'INTERNAL_ERROR',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+/**
+ * Get Verification Key Endpoint
+ * GET /api/verification-key
+ * Returns the ZK circuit verification key for client-side access
+ */
+app.get('/api/verification-key', (req, res) => {
+  try {
+    if (!verificationKey) {
+      return res.status(503).json({
+        error: 'ZK verification key not available',
+        code: 'VERIFICATION_KEY_UNAVAILABLE',
+        message: 'Circuit verification key not loaded - ensure trusted setup has been completed',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Set caching headers for performance optimization
+    res.set({
+      'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
+      'ETag': JSON.stringify(verificationKey).slice(0, 32) // Simple ETag based on content
+    });
+
+    console.log('📋 Verification key requested');
+
+    res.json({
+      success: true,
+      verificationKey,
+      metadata: {
+        protocol: verificationKey.protocol,
+        curve: verificationKey.curve,
+        nPublic: verificationKey.nPublic
+      },
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('❌ Verification key retrieval failed:', error.message);
+    res.status(500).json({
+      error: 'Failed to retrieve verification key',
+      code: 'INTERNAL_ERROR',
+      message: process.env.NODE_ENV === 'development' ? error.message : 'Verification key unavailable',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+/**
+ * Verify ZK Proof Endpoint
+ * POST /api/verify-proof
+ * Verifies Groth16 zero-knowledge proofs and extracts public signal data
+ */
+app.post('/api/verify-proof', async (req, res) => {
+  const startTime = Date.now();
+  
+  try {
+    console.log('🔐 ZK proof verification request received');
+
+    // Check if verification key is available
+    if (!verificationKey) {
+      return res.status(503).json({
+        error: 'ZK verification not available',
+        code: 'VERIFICATION_UNAVAILABLE',
+        message: 'Circuit verification key not loaded - ensure trusted setup has been completed',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Validate request body
+    const { proof, publicSignals } = req.body;
+
+    if (!proof || !publicSignals) {
+      return res.status(400).json({
+        error: 'Missing required parameters',
+        code: 'MISSING_PARAMETERS',
+        required: ['proof', 'publicSignals'],
+        received: { proof: !!proof, publicSignals: !!publicSignals },
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Validate proof format
+    const requiredProofFields = ['pi_a', 'pi_b', 'pi_c', 'protocol', 'curve'];
+    for (const field of requiredProofFields) {
+      if (!proof[field]) {
+        return res.status(400).json({
+          error: `Invalid proof format: missing field '${field}'`,
+          code: 'INVALID_PROOF_FORMAT',
+          field,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+
+    // Validate public signals format and bounds
+    if (!Array.isArray(publicSignals)) {
+      return res.status(400).json({
+        error: 'Public signals must be an array',
+        code: 'INVALID_PUBLIC_SIGNALS_FORMAT',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    if (publicSignals.length !== 3) {
+      return res.status(400).json({
+        error: 'Invalid public signals length',
+        code: 'INVALID_PUBLIC_SIGNALS_LENGTH',
+        expected: 3,
+        received: publicSignals.length,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Validate public signal values are valid field elements
+    for (let i = 0; i < publicSignals.length; i++) {
+      const signal = publicSignals[i];
+      if (typeof signal !== 'string' && typeof signal !== 'number') {
+        return res.status(400).json({
+          error: `Invalid public signal at index ${i}: must be string or number`,
+          code: 'INVALID_PUBLIC_SIGNAL_TYPE',
+          index: i,
+          type: typeof signal,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+
+    console.log('📊 Verifying proof with public signals:', publicSignals);
+
+    // Perform ZK proof verification using SnarkJS
+    let isValid;
+    try {
+      isValid = await snarkjs.groth16.verify(verificationKey, publicSignals, proof);
+    } catch (snarkjsError) {
+      console.error('❌ SnarkJS verification error:', snarkjsError.message);
+      return res.status(400).json({
+        error: 'Proof verification failed',
+        code: 'VERIFICATION_FAILED',
+        message: 'Invalid proof or public signals',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Extract and interpret public signals
+    const tagMatchCount = parseInt(publicSignals[0], 10);
+    const threshold = parseInt(publicSignals[1], 10);
+    const targetTagIndex = parseInt(publicSignals[2], 10);
+
+    // Map target tag index to human-readable name
+    const TAG_DICTIONARY = ['defi', 'privacy', 'travel', 'gaming', 'technology', 'finance'];
+    const matchedTag = TAG_DICTIONARY[targetTagIndex] || 'unknown';
+
+    const responseTime = Date.now() - startTime;
+
+    // Log verification result
+    console.log(`${isValid ? '✅' : '❌'} Proof verification ${isValid ? 'succeeded' : 'failed'}`);
+    console.log(`📈 Results: tag=${matchedTag}, count=${tagMatchCount}, threshold=${threshold}`);
+    console.log(`⏱️ Verification completed in ${responseTime}ms`);
+
+    // Prepare response
+    const response = {
+      valid: isValid,
+      results: isValid ? {
+        matchedTag,
+        tagMatchCount,
+        threshold,
+        targetTag: matchedTag,
+        proofMeetsThreshold: tagMatchCount >= threshold
+      } : null,
+      metadata: {
+        verificationTime: responseTime,
+        publicSignals: publicSignals.map(Number),
+        protocol: proof.protocol,
+        curve: proof.curve
+      },
+      timestamp: new Date().toISOString()
+    };
+
+    // Set appropriate status code
+    const statusCode = isValid ? 200 : 400;
+
+    res.status(statusCode).json(response);
+
+  } catch (error) {
+    const responseTime = Date.now() - startTime;
+    console.error('❌ ZK proof verification error:', error.message);
+
+    // Sanitize error message for security
+    const sanitizedMessage = process.env.NODE_ENV === 'development' 
+      ? error.message 
+      : 'Proof verification failed';
+
+    res.status(500).json({
+      error: 'Internal server error during proof verification',
+      code: 'VERIFICATION_ERROR',
+      message: sanitizedMessage,
+      metadata: {
+        verificationTime: responseTime
+      },
       timestamp: new Date().toISOString()
     });
   }
