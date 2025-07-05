@@ -131,7 +131,7 @@ export class BrowserDatabaseManager {
             console.log('Profile stored in browser database:', profile.wallet);
         } catch (error) {
             if (error instanceof ValidationError) {
-                throw error;
+            throw error;
             }
             throw new DatabaseError(`Failed to store profile: ${error.message}`);
         }
@@ -302,7 +302,7 @@ export class BrowserDatabaseManager {
             return session.data;
         } catch (error) {
             if (error instanceof ValidationError) {
-                throw error;
+            throw error;
             }
             throw new DatabaseError(`Failed to get session: ${error.message}`);
         }
