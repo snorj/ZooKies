@@ -1,34 +1,91 @@
-[
-  {
-    "description": "Edge case: threshold equals tag count",
-    "input": {
-      "tags": [5, 5, 5, 0, 0, 0, 0, 0, 0, 0],
-      "targetTag": "5",
-      "threshold": "3"
-    }
-  },
-  {
-    "description": "Edge case: no matching tags",
-    "input": {
-      "tags": [1, 2, 3, 4, 6, 7, 8, 9, 10, 11],
-      "targetTag": "5",
-      "threshold": "1"
-    }
-  },
-  {
-    "description": "Edge case: all tags match",
-    "input": {
-      "tags": [7, 7, 7, 7, 7, 7, 7, 7, 7, 7],
-      "targetTag": "7",
-      "threshold": "5"
-    }
-  },
-  {
-    "description": "Edge case: threshold is 0",
-    "input": {
-      "tags": [1, 2, 3, 0, 0, 0, 0, 0, 0, 0],
-      "targetTag": "1",
-      "threshold": "0"
+{
+  "testCases": {
+    "exactThresholdMatch": {
+      "description": "Exactly 3 matches for threshold=3 (defi tag)",
+      "attestationHashes": [
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+        11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+        21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
+        31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+        41, 42, 43, 44, 45, 46, 47, 48, 49, 50
+      ],
+      "tagIndices": [
+        0, 1, 2, 3, 4, 5, 0, 1, 2, 3,
+        4, 5, 1, 2, 3, 4, 5, 1, 2, 3,
+        4, 5, 1, 2, 3, 4, 5, 1, 2, 3,
+        4, 5, 1, 2, 3, 4, 5, 1, 2, 3,
+        4, 5, 1, 2, 3, 4, 5, 0, 2, 3
+      ],
+      "walletSig": [123456789, 987654321],
+      "targetTag": 0,
+      "threshold": 3,
+      "expectedCount": 3
+    },
+    
+    "aboveThreshold": {
+      "description": "5 matches for threshold=2 (privacy tag)", 
+      "attestationHashes": [
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+        11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+        21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
+        31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+        41, 42, 43, 44, 45, 46, 47, 48, 49, 50
+      ],
+      "tagIndices": [
+        1, 0, 1, 2, 3, 1, 4, 5, 1, 2,
+        3, 4, 5, 0, 1, 2, 3, 4, 5, 0,
+        2, 3, 4, 5, 0, 2, 3, 4, 5, 0,
+        2, 3, 4, 5, 0, 2, 3, 4, 5, 0,
+        2, 3, 4, 5, 0, 2, 3, 4, 5, 0
+      ],
+      "walletSig": [234567890, 876543210],
+      "targetTag": 1,
+      "threshold": 2,
+      "expectedCount": 5
+    },
+    
+    "singleMatch": {
+      "description": "Only 1 match for threshold=1 (gaming tag)",
+      "attestationHashes": [
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+        11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+        21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
+        31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+        41, 42, 43, 44, 45, 46, 47, 48, 49, 50
+      ],
+      "tagIndices": [
+        0, 1, 2, 4, 5, 0, 1, 2, 4, 5,
+        0, 1, 2, 4, 5, 0, 1, 2, 4, 5,
+        0, 1, 2, 4, 5, 0, 1, 2, 4, 5,
+        0, 1, 2, 4, 5, 0, 1, 2, 4, 5,
+        0, 1, 2, 4, 5, 0, 1, 2, 4, 3
+      ],
+      "walletSig": [345678901, 765432109],
+      "targetTag": 3,
+      "threshold": 1,
+      "expectedCount": 1
+    },
+    
+    "maxTagValues": {
+      "description": "Test with maximum tag values (255) and high threshold",
+      "attestationHashes": [
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+        11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+        21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
+        31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+        41, 42, 43, 44, 45, 46, 47, 48, 49, 50
+      ],
+      "tagIndices": [
+        255, 254, 255, 253, 252, 255, 251, 250, 255, 249,
+        248, 255, 247, 246, 255, 245, 244, 255, 243, 242,
+        255, 241, 240, 255, 239, 238, 255, 237, 236, 255,
+        235, 234, 255, 233, 232, 255, 231, 230, 255, 229,
+        228, 255, 227, 226, 255, 225, 224, 255, 223, 222
+      ],
+      "walletSig": [456789012, 654321098],
+      "targetTag": 255,
+      "threshold": 15,
+      "expectedCount": 15
     }
   }
-] 
+} 
