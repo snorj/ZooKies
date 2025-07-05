@@ -241,25 +241,54 @@ class ZKProofDemo {
      * Utility Methods
      */
     async createSingleAttestation(tag, description) {
-        // Create a mock attestation with proper structure
+        // Map demo tags to database-allowed tags
+        const tagMapping = {
+            'defi': 'finance',
+            'finance': 'finance', 
+            'privacy': 'privacy',
+            'travel': 'travel',
+            'gaming': 'gaming',
+            'technology': 'gaming' // Map technology to gaming as fallback
+        };
+        
+        const dbTag = tagMapping[tag.toLowerCase()] || 'finance';
+        const nonce = Date.now() + Math.random(); // Simple nonce generation
+        const walletAddress = this.zkAgent.wallet?.address;
+        
+        // Create attestation with all required fields
         const attestation = {
-            id: Date.now() + Math.random(),
-            tag: tag,
-            score: Math.floor(Math.random() * 50) + 50, // Score between 50-100
+            tag: dbTag,
             timestamp: Date.now(),
+            nonce: nonce.toString(),
+            signature: `demo_sig_${nonce}`, // Demo signature
+            publisher: 'demo-publisher',
+            user_wallet: walletAddress,
+            // Additional demo fields
+            id: Date.now() + Math.random(),
+            score: Math.floor(Math.random() * 50) + 50, // Score between 50-100
             description: description,
             source: `demo-${tag}`,
-            verified: true
+            verified: true,
+            metadata: {
+                created: new Date().toISOString(),
+                demo: true,
+                originalTag: tag
+            }
         };
 
         // Store in IndexedDB via zkAffinityAgent
-        await this.zkAgent.database.saveAttestation(attestation);
+        await this.zkAgent.dbManager.storeAttestation(attestation);
         return attestation;
     }
 
     async loadAttestations() {
         try {
-            this.attestations = await this.zkAgent.database.getAllAttestations();
+            const walletAddress = this.zkAgent.wallet?.address;
+            if (walletAddress) {
+                this.attestations = await this.zkAgent.dbManager.getAttestations(walletAddress);
+            } else {
+                this.attestations = [];
+            }
             console.log(`📄 Loaded ${this.attestations.length} attestations`);
         } catch (error) {
             console.error('Failed to load attestations:', error);
@@ -375,7 +404,7 @@ class ZKProofDemo {
         try {
             const walletAddress = this.zkAgent.wallet?.address || 'Not connected';
             const profileId = this.zkAgent.profile?.id || 'Not set';
-            const dbStatus = this.zkAgent.database ? 'Initialized' : 'Not initialized';
+            const dbStatus = this.zkAgent.dbManager ? 'Initialized' : 'Not initialized';
 
             document.getElementById('wallet-address').textContent = walletAddress;
             document.getElementById('profile-id').textContent = profileId;
