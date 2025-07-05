@@ -1,0 +1,42 @@
+{
+  "name": "zk-affinity-circuits",
+  "version": "1.0.0",
+  "description": "Zero-knowledge circuits for ZK Affinity Agent tag counting and threshold proofs",
+  "main": "index.js",
+  "scripts": {
+    "compile": "./scripts/compile.sh",
+    "setup": "./scripts/setup.sh",
+    "test": "./scripts/test.sh",
+    "build": "npm run compile && npm run setup",
+    "verify": "node scripts/verify-setup.js",
+    "clean": "rm -rf build/* && echo 'Build directory cleaned'",
+    "prove": "node scripts/generate-proof.js",
+    "verify-proof": "node scripts/verify-proof.js"
+  },
+  "keywords": [
+    "circom",
+    "zero-knowledge",
+    "snarkjs",
+    "zk-proof",
+    "threshold",
+    "tag-counting"
+  ],
+  "author": "ZK Affinity Team",
+  "license": "MIT",
+  "dependencies": {
+    "snarkjs": "^0.7.4"
+  },
+  "devDependencies": {
+    "circom_tester": "^0.0.20",
+    "mocha": "^10.2.0",
+    "chai": "^4.3.10",
+    "fs-extra": "^11.2.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/zk-affinity-circuits.git"
+  }
+} 

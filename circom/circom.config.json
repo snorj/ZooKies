@@ -1,0 +1,44 @@
+{
+  "circuit": {
+    "name": "ThresholdProof",
+    "version": "1.0.0",
+    "description": "Zero-knowledge circuit for proving minimum tag count thresholds",
+    "maxTags": 10,
+    "maxTagValue": 255,
+    "maxThreshold": 10
+  },
+  "compilation": {
+    "circomVersion": "2.1.8",
+    "optimization": "O2",
+    "verbose": true,
+    "outputs": ["r1cs", "wasm", "sym", "c"]
+  },
+  "trustedSetup": {
+    "ptauFile": "ptau/powersOfTau28_hez_final_20.ptau",
+    "ptauConstraints": 1048576,
+    "ceremony": "automated_development"
+  },
+  "testing": {
+    "validateInputs": true,
+    "testCases": [
+      {
+        "name": "valid_threshold",
+        "description": "Basic case where threshold is met",
+        "expected": {
+          "tagMatchCount": 3,
+          "thresholdMet": true
+        }
+      },
+      {
+        "name": "edge_cases",
+        "description": "Various edge cases including boundary conditions",
+        "multipleTests": true
+      }
+    ]
+  },
+  "integration": {
+    "browserCompatible": true,
+    "wasmSupport": true,
+    "snarkjsVersion": "0.7.4"
+  }
+} 

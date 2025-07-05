@@ -1,0 +1,12 @@
+{
+  "_comment": "Production input template for ThresholdProof circuit",
+  "_description": "This template shows the required structure for circuit inputs. All values should be strings for compatibility with snarkjs.",
+  "_constraints": {
+    "tags": "Array of 10 integers representing tag IDs (0-255). Unused slots should be 0.",
+    "targetTag": "String representation of the target tag ID to count (0-255)",
+    "threshold": "String representation of minimum required count (0-10)"
+  },
+  "tags": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  "targetTag": "1",
+  "threshold": "2"
+} 

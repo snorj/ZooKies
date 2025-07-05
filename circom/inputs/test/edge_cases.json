@@ -1,0 +1,34 @@
+[
+  {
+    "description": "Edge case: threshold equals tag count",
+    "input": {
+      "tags": [5, 5, 5, 0, 0, 0, 0, 0, 0, 0],
+      "targetTag": "5",
+      "threshold": "3"
+    }
+  },
+  {
+    "description": "Edge case: no matching tags",
+    "input": {
+      "tags": [1, 2, 3, 4, 6, 7, 8, 9, 10, 11],
+      "targetTag": "5",
+      "threshold": "1"
+    }
+  },
+  {
+    "description": "Edge case: all tags match",
+    "input": {
+      "tags": [7, 7, 7, 7, 7, 7, 7, 7, 7, 7],
+      "targetTag": "7",
+      "threshold": "5"
+    }
+  },
+  {
+    "description": "Edge case: threshold is 0",
+    "input": {
+      "tags": [1, 2, 3, 0, 0, 0, 0, 0, 0, 0],
+      "targetTag": "1",
+      "threshold": "0"
+    }
+  }
+] 
