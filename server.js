@@ -55,7 +55,24 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
-app.use(express.json({ limit: '10mb' }));
+// JSON parsing middleware with error handling
+app.use((req, res, next) => {
+  express.json({ 
+    limit: '10mb',
+    verify: (req, res, buf) => {
+      req.rawBody = buf;
+    }
+  })(req, res, (err) => {
+    if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+      return res.status(400).json({
+        error: 'Invalid JSON format',
+        code: 'JSON_PARSE_ERROR',
+        timestamp: new Date().toISOString()
+      });
+    }
+    next(err);
+  });
+});
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Request logging middleware
