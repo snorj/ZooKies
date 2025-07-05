@@ -17,14 +17,14 @@ NC='\033[0m' # No Color
 echo -e "${GREEN}🔧 Starting Circom compilation pipeline...${NC}"
 
 # Check if circom is installed
-if ! command -v circom &> /dev/null; then
+if ! command -v /Users/peter/.cargo/bin/circom &> /dev/null; then
     echo -e "${RED}❌ Error: circom is not installed. Please install circom first.${NC}"
     echo -e "${YELLOW}💡 Install with: npm install -g circom@latest${NC}"
     exit 1
 fi
 
 # Check circom version
-CIRCOM_VERSION=$(circom --version | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+' | head -1)
+CIRCOM_VERSION=$(/Users/peter/.cargo/bin/circom --version | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+' | head -1)
 echo -e "${BLUE}📋 Using Circom version: ${CIRCOM_VERSION}${NC}"
 
 # Create build directories
@@ -43,7 +43,7 @@ rm -rf ${BUILD_DIR}/circuits/${CIRCUIT_NAME}*
 
 # Compile circuit with optimization flags
 echo -e "${YELLOW}⚙️  Compiling circuit with optimization...${NC}"
-circom ${CIRCUIT_DIR}/${CIRCUIT_NAME}.circom \
+/Users/peter/.cargo/bin/circom ${CIRCUIT_DIR}/${CIRCUIT_NAME}.circom \
     --r1cs \
     --wasm \
     --sym \
@@ -80,11 +80,11 @@ if [ -f "inputs/test/valid_threshold.json" ]; then
     echo -e "${YELLOW}🧪 Testing witness generation...${NC}"
     cd ${BUILD_DIR}/circuits/${CIRCUIT_NAME}_js
     
-    if node generate_witness.js ${CIRCUIT_NAME}.wasm ../../../inputs/test/valid_threshold.json ../witness/test.wtns; then
+    if node generate_witness.js ${CIRCUIT_NAME}.wasm ../../../inputs/test/valid_threshold.json ../../witness/test.wtns; then
         echo -e "${GREEN}✅ Witness generation successful${NC}"
         
         # Check witness file size
-        WITNESS_SIZE=$(wc -c < "../witness/test.wtns")
+        WITNESS_SIZE=$(wc -c < "../../witness/test.wtns")
         echo -e "   Witness file size: ${WITNESS_SIZE} bytes"
     else
         echo -e "${RED}❌ Witness generation failed${NC}"

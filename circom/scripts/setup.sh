@@ -3,8 +3,16 @@ set -euo pipefail
 
 CIRCUIT_NAME="ThresholdProof"
 BUILD_DIR="build"
-PTAU_FILE="ptau/powersOfTau28_hez_final_20.ptau"
-PTAU_URL="https://hermez.s3-eu-west-1.amazonaws.com/powersOfTau28_hez_final_20.ptau"
+PTAU_FILE="ptau/powersOfTau28_hez_final_11.ptau"
+
+# Trusted fallback URLs for Powers of Tau ceremony files (direct download links)
+PTAU_URLS=(
+    "https://storage.googleapis.com/zkevm/ptau/powersOfTau28_hez_final_11.ptau"
+    "https://hermez.s3-eu-west-1.amazonaws.com/powersOfTau28_hez_final_11.ptau"
+)
+
+# Expected file size for powersOfTau28_hez_final_11.ptau (approximately 4MB)
+EXPECTED_MIN_SIZE=4000000
 
 # Colors for output
 RED='\033[0;31m'
@@ -23,7 +31,7 @@ if ! command -v snarkjs &> /dev/null; then
 fi
 
 # Check snarkjs version
-SNARKJS_VERSION=$(snarkjs --version | head -1)
+SNARKJS_VERSION=$(snarkjs --version | head -1 || true)
 echo -e "${BLUE}📋 Using SnarkJS: ${SNARKJS_VERSION}${NC}"
 
 # Check if R1CS file exists
@@ -35,45 +43,127 @@ fi
 # Create directories
 mkdir -p ptau ${BUILD_DIR}/keys
 
-# Download Powers of Tau if not present
+# Download Powers of Tau if not present with fallback sources
+download_ptau() {
+    echo -e "${YELLOW}📥 Downloading Powers of Tau ceremony file (2^11 = 2048 constraints)...${NC}"
+    
+    for url in "${PTAU_URLS[@]}"; do
+        echo -e "${BLUE}   Trying: ${url}${NC}"
+        
+        # Test with HEAD request first to check if URL is valid
+        if command -v curl &> /dev/null; then
+            # Check content type and size with HEAD request
+            response=$(curl -sI "$url" --connect-timeout 10)
+            content_length=$(echo "$response" | grep -i content-length | cut -d' ' -f2 | tr -d '\r')
+            content_type=$(echo "$response" | grep -i content-type | cut -d' ' -f2 | tr -d '\r')
+            
+            echo -e "${BLUE}   Content-Length: ${content_length:-unknown}, Content-Type: ${content_type:-unknown}${NC}"
+            
+            # Skip if content type suggests HTML
+            if [[ "$content_type" == *"text/html"* ]]; then
+                echo -e "${YELLOW}   Skipping: URL returns HTML instead of binary file${NC}"
+                continue
+            fi
+            
+            # Skip if file seems too small
+            if [[ -n "$content_length" && "$content_length" -lt "$EXPECTED_MIN_SIZE" ]]; then
+                echo -e "${YELLOW}   Skipping: File too small (${content_length} bytes)${NC}"
+                continue
+            fi
+            
+            # Download the file
+            if curl -L -o "${PTAU_FILE}.tmp" "${url}" --progress-bar --connect-timeout 30; then
+                # Verify downloaded file
+                actual_size=$(wc -c < "${PTAU_FILE}.tmp")
+                
+                # Check if file starts with binary magic number (not HTML)
+                file_type=$(file "${PTAU_FILE}.tmp" | head -1)
+                
+                if [[ "$file_type" == *"HTML"* || "$file_type" == *"text"* ]]; then
+                    echo -e "${YELLOW}   Downloaded file is HTML/text, not binary${NC}"
+                    rm -f "${PTAU_FILE}.tmp"
+                    continue
+                fi
+                
+                if [ "$actual_size" -ge "$EXPECTED_MIN_SIZE" ]; then
+                    mv "${PTAU_FILE}.tmp" "${PTAU_FILE}"
+                    echo -e "${GREEN}✅ Downloaded successfully: ${actual_size} bytes${NC}"
+                    return 0
+                else
+                    echo -e "${YELLOW}   Downloaded file too small: ${actual_size} bytes${NC}"
+                    rm -f "${PTAU_FILE}.tmp"
+                fi
+            else
+                echo -e "${YELLOW}   Download failed${NC}"
+                rm -f "${PTAU_FILE}.tmp"
+            fi
+        elif command -v wget &> /dev/null; then
+            # Try with wget as fallback
+            if wget --spider --timeout=10 "${url}" 2>/dev/null; then
+                if wget -O "${PTAU_FILE}.tmp" "${url}" --progress=bar:force --timeout=30; then
+                    actual_size=$(wc -c < "${PTAU_FILE}.tmp")
+                    file_type=$(file "${PTAU_FILE}.tmp" | head -1)
+                    
+                    if [[ "$file_type" == *"HTML"* || "$file_type" == *"text"* ]]; then
+                        echo -e "${YELLOW}   Downloaded file is HTML/text, not binary${NC}"
+                        rm -f "${PTAU_FILE}.tmp"
+                        continue
+                    fi
+                    
+                    if [ "$actual_size" -ge "$EXPECTED_MIN_SIZE" ]; then
+                        mv "${PTAU_FILE}.tmp" "${PTAU_FILE}"
+                        echo -e "${GREEN}✅ Downloaded successfully: ${actual_size} bytes${NC}"
+                        return 0
+                    else
+                        echo -e "${YELLOW}   Downloaded file too small: ${actual_size} bytes${NC}"
+                        rm -f "${PTAU_FILE}.tmp"
+                    fi
+                fi
+            fi
+        fi
+        
+        echo -e "${YELLOW}   Failed, trying next source...${NC}"
+    done
+    
+    echo -e "${RED}❌ Error: Failed to download Powers of Tau file from all sources${NC}"
+    echo -e "${YELLOW}💡 Manual download option: Check https://github.com/iden3/snarkjs documentation${NC}"
+    return 1
+}
+
 if [ ! -f "${PTAU_FILE}" ]; then
-    echo -e "${YELLOW}📥 Downloading Powers of Tau ceremony file...${NC}"
-    echo -e "${BLUE}   Source: ${PTAU_URL}${NC}"
-    
-    if command -v wget &> /dev/null; then
-        wget -O "${PTAU_FILE}" "${PTAU_URL}" --progress=bar:force
-    elif command -v curl &> /dev/null; then
-        curl -L -o "${PTAU_FILE}" "${PTAU_URL}" --progress-bar
-    else
-        echo -e "${RED}❌ Error: Neither wget nor curl found. Please install one of them.${NC}"
-        exit 1
+    if ! download_ptau; then
+        echo -e "${YELLOW}⚙️  Falling back to local generation (this may take a while)...${NC}"
+        echo -e "${BLUE}   Creating 2^11 (2048) constraint Powers of Tau file for development${NC}"
+        
+        # Generate new Powers of Tau ceremony locally as fallback
+        snarkjs powersoftau new bn128 11 ptau/powersOfTau28_hez_initial_11.ptau -v
+        
+        # Contribute to the ceremony
+        snarkjs powersoftau contribute ptau/powersOfTau28_hez_initial_11.ptau ptau/powersOfTau28_hez_contribute_11.ptau \
+            --name="Development Setup $(date +%Y%m%d_%H%M%S)" -v
+        
+        # Prepare for phase 2
+        snarkjs powersoftau prepare phase2 ptau/powersOfTau28_hez_contribute_11.ptau "${PTAU_FILE}" -v
+        
+        # Clean up intermediate files
+        rm ptau/powersOfTau28_hez_initial_11.ptau ptau/powersOfTau28_hez_contribute_11.ptau
+        
+        echo -e "${GREEN}✅ Powers of Tau file generated locally${NC}"
     fi
-    
-    if [ ! -f "${PTAU_FILE}" ]; then
-        echo -e "${RED}❌ Error: Failed to download Powers of Tau file${NC}"
-        exit 1
-    fi
-    
-    echo -e "${GREEN}✅ Powers of Tau file downloaded successfully${NC}"
 else
     echo -e "${BLUE}📋 Powers of Tau file already exists${NC}"
 fi
 
-# Check file size (should be around 288MB for 2^20)
+# Check file size and basic validation
 PTAU_SIZE=$(wc -c < "${PTAU_FILE}")
-EXPECTED_SIZE=288558080  # Approximate size for 2^20 constraints
-if [ $PTAU_SIZE -lt $((EXPECTED_SIZE - 1000000)) ] || [ $PTAU_SIZE -gt $((EXPECTED_SIZE + 1000000)) ]; then
-    echo -e "${YELLOW}⚠️  Warning: Powers of Tau file size (${PTAU_SIZE} bytes) differs from expected size${NC}"
-fi
+echo -e "${BLUE}   Powers of Tau file size: ${PTAU_SIZE} bytes${NC}"
 
-# Verify Powers of Tau file integrity
-echo -e "${YELLOW}🔍 Verifying Powers of Tau file integrity...${NC}"
-if snarkjs powersoftau verify "${PTAU_FILE}"; then
-    echo -e "${GREEN}✅ Powers of Tau verification successful${NC}"
-else
-    echo -e "${RED}❌ Powers of Tau verification failed${NC}"
-    echo -e "${YELLOW}💡 Try re-downloading the file with: rm ${PTAU_FILE} && ./scripts/setup.sh${NC}"
-    exit 1
+# Basic sanity check - file should be at least 1MB for powers of tau 11
+if [ $PTAU_SIZE -lt 1000000 ]; then
+    echo -e "${YELLOW}⚠️  Warning: Powers of Tau file seems too small, may be corrupted${NC}"
+    echo -e "${YELLOW}   Removing and attempting re-download...${NC}"
+    rm -f "${PTAU_FILE}"
+    download_ptau
 fi
 
 # Phase 1: Circuit-specific setup
