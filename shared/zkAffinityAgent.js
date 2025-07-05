@@ -1160,6 +1160,515 @@ class ZkAffinityAgent {
     async updateUserProfile(profileData) {
         return await this.updateProfile(profileData);
     }
+
+    // ========================================================================================
+    // ZK PROOF GENERATION INTEGRATION
+    // ========================================================================================
+
+    /**
+     * Generate zero-knowledge proof for attestation threshold
+     * @param {Object} options - Proof generation options
+     * @param {string} options.tag - Target tag (e.g., "defi", "privacy", "travel")
+     * @param {number} options.threshold - Minimum attestation count required
+     * @param {boolean} options.requiresSelfProof - Whether user must prove their own attestations
+     * @returns {Promise<Object>} Proof generation result
+     */
+    async prove({ tag = "defi", threshold = 2, requiresSelfProof = false } = {}) {
+        try {
+            console.log(`🔐 Starting ZK proof generation for tag: ${tag}, threshold: ${threshold}`);
+            
+            // Ensure wallet and profile are initialized
+            await this.ensureWalletAndProfile();
+            
+            if (!this.wallet) {
+                throw new Error('Wallet not available for proof generation');
+            }
+
+            // Get zkProofBuilder instance
+            const zkProofBuilder = this.getZkProofBuilder();
+            if (!zkProofBuilder) {
+                throw new Error('ZK Proof Builder not available');
+            }
+
+            // Ensure proof builder is initialized
+            await zkProofBuilder.ensureInitialized();
+
+            // Load attestations from IndexedDB
+            let attestations = [];
+            if (this.dbManager && this.dbManager.getAllAttestations) {
+                attestations = await this.dbManager.getAllAttestations();
+            } else {
+                // Fallback to in-memory attestations
+                attestations = [...this.attestations];
+            }
+
+            console.log(`📊 Loaded ${attestations.length} total attestations`);
+
+            // Filter for target tag
+            const matchingAttestations = attestations.filter(a => a.tag === tag);
+            console.log(`🎯 Found ${matchingAttestations.length} attestations for tag: ${tag}`);
+
+            // Check if we have enough attestations
+            if (matchingAttestations.length < threshold) {
+                throw new Error(`Insufficient attestations: have ${matchingAttestations.length}, need ${threshold}`);
+            }
+
+            // Prepare circuit inputs
+            console.log('⚙️ Preparing circuit inputs...');
+            const inputs = await zkProofBuilder.prepareZKInputs({
+                tag,
+                threshold,
+                walletAddress: this.wallet.address
+            });
+
+            console.log('🔧 Circuit inputs prepared:', {
+                targetTag: inputs.targetTag,
+                threshold: inputs.threshold,
+                attestationCount: inputs.attestationHashes?.length || 0
+            });
+
+            // Generate ZK proof
+            console.log('🏗️ Generating zero-knowledge proof...');
+            const { proof, publicSignals } = await zkProofBuilder.generateProof(inputs, (progress) => {
+                console.log(`📈 Proof generation progress: ${progress}%`);
+            });
+
+            console.log('✅ ZK proof generated successfully');
+
+            // Submit for verification
+            console.log('🔍 Submitting proof for verification...');
+            const verification = await zkProofBuilder.submitProof(proof, publicSignals, {
+                tag,
+                threshold,
+                walletAddress: this.wallet.address,
+                timestamp: Date.now()
+            });
+
+            console.log('✅ Proof verification completed:', verification);
+
+            return {
+                success: true,
+                proof,
+                publicSignals,
+                verification,
+                tag,
+                threshold,
+                attestationCount: matchingAttestations.length,
+                walletAddress: this.wallet.address,
+                timestamp: Date.now()
+            };
+
+        } catch (error) {
+            console.error('❌ ZK proof generation failed:', error);
+            return {
+                success: false,
+                error: error.message,
+                tag,
+                threshold,
+                timestamp: Date.now()
+            };
+        }
+    }
+
+    /**
+     * Request targeted ad based on ZK proof verification
+     * @param {Object} options - Ad request options
+     * @param {string} options.tag - Target demographic tag
+     * @param {number} options.threshold - Minimum attestation threshold
+     * @param {boolean} options.requiresSelfProof - Whether user must prove their own attestations
+     * @returns {Promise<Object>} Ad targeting result
+     */
+    async requestAd({ tag = "defi", threshold = 2, requiresSelfProof = false } = {}) {
+        try {
+            console.log(`🎯 Requesting targeted ad for ${tag} (threshold: ${threshold})`);
+
+            // Generate proof for targeting condition
+            const proofResult = await this.prove({ tag, threshold, requiresSelfProof });
+
+            if (proofResult.success && proofResult.verification.valid) {
+                // User qualifies - return targeted ad
+                console.log('✅ User qualifies for targeted ad');
+                
+                const adContent = await this.loadAdContent(tag);
+                
+                return {
+                    qualified: true,
+                    adContent,
+                    proofDetails: proofResult,
+                    targetingReason: `Proven interest in ${tag} with ${proofResult.attestationCount} attestations`,
+                    timestamp: Date.now()
+                };
+            } else {
+                // User doesn't qualify - return fallback
+                console.log('❌ User does not qualify for targeted ad');
+                
+                const fallbackAd = await this.loadFallbackAd();
+                
+                return {
+                    qualified: false,
+                    fallbackAd,
+                    reason: proofResult.error || 'Proof verification failed',
+                    proofDetails: proofResult,
+                    timestamp: Date.now()
+                };
+            }
+
+        } catch (error) {
+            console.error('❌ Ad request failed:', error);
+            
+            // Return fallback ad on error
+            const fallbackAd = await this.loadFallbackAd();
+            
+            return {
+                qualified: false,
+                fallbackAd,
+                reason: `Ad request error: ${error.message}`,
+                error: error.message,
+                timestamp: Date.now()
+            };
+        }
+    }
+
+    /**
+     * Render targeted ad in the specified container
+     * @param {string} tag - Ad targeting tag
+     * @param {HTMLElement} adContainer - Container element for the ad
+     * @param {Object} options - Rendering options
+     * @returns {Promise<HTMLElement>} Rendered ad element
+     */
+    async renderAd(tag = "defi", adContainer = null, options = {}) {
+        try {
+            console.log(`🎨 Rendering ad for tag: ${tag}`);
+
+            // Use provided container or find/create one
+            const container = adContainer || 
+                            document.getElementById('zk-ad-container') || 
+                            document.body;
+
+            // Request targeted ad
+            const adRequest = await this.requestAd({ 
+                tag, 
+                threshold: options.threshold || 2,
+                requiresSelfProof: options.requiresSelfProof || false
+            });
+
+            // Create ad element
+            const adElement = document.createElement('div');
+            adElement.className = 'zk-targeted-ad';
+            adElement.setAttribute('data-tag', tag);
+            adElement.setAttribute('data-qualified', adRequest.qualified);
+
+            if (adRequest.qualified) {
+                // Render targeted ad
+                adElement.innerHTML = `
+                    <div class="ad-content targeted">
+                        <div class="ad-header">
+                            <h3>🎯 Targeted Ad: ${tag.toUpperCase()}</h3>
+                            <span class="zk-badge">ZK Verified</span>
+                        </div>
+                        <div class="ad-body">
+                            ${adRequest.adContent.html || `<p>This ad was shown based on your proven interest in ${tag}</p>`}
+                        </div>
+                        <div class="ad-footer">
+                            <button class="ad-button" onclick="console.log('Targeted ad clicked!', '${tag}')">
+                                Learn More
+                            </button>
+                            <small class="zk-proof-info">
+                                Verified with ${adRequest.proofDetails.attestationCount} attestations
+                            </small>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Render fallback ad
+                adElement.innerHTML = `
+                    <div class="ad-content fallback">
+                        <div class="ad-header">
+                            <h3>📢 General Ad</h3>
+                            <span class="fallback-badge">Standard</span>
+                        </div>
+                        <div class="ad-body">
+                            ${adRequest.fallbackAd.html || '<p>Discover new opportunities with ZooKies!</p>'}
+                        </div>
+                        <div class="ad-footer">
+                            <button class="ad-button" onclick="console.log('Fallback ad clicked!')">
+                                Learn More
+                            </button>
+                            <small class="fallback-reason">
+                                ${adRequest.reason}
+                            </small>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Add basic styling
+            this.addAdStyles();
+
+            // Append to container
+            container.appendChild(adElement);
+
+            console.log('✅ Ad rendered successfully');
+            return adElement;
+
+        } catch (error) {
+            console.error('❌ Ad rendering failed:', error);
+            
+            // Create error ad
+            const errorElement = document.createElement('div');
+            errorElement.className = 'zk-targeted-ad error';
+            errorElement.innerHTML = `
+                <div class="ad-content error">
+                    <h3>⚠️ Ad Loading Error</h3>
+                    <p>Unable to load targeted content</p>
+                    <small>Error: ${error.message}</small>
+                </div>
+            `;
+            
+            if (adContainer) {
+                adContainer.appendChild(errorElement);
+            }
+            
+            return errorElement;
+        }
+    }
+
+    /**
+     * Load ad content for specific tag
+     * @param {string} tag - Target tag
+     * @returns {Promise<Object>} Ad content
+     */
+    async loadAdContent(tag) {
+        // Default ad content for different tags
+        const adContent = {
+            defi: {
+                html: `
+                    <h4>🚀 DeFi Opportunities Await!</h4>
+                    <p>Unlock exclusive yield farming strategies and liquidity mining rewards.</p>
+                    <ul>
+                        <li>✅ 15% APY on staking</li>
+                        <li>✅ Zero gas fees for first month</li>
+                        <li>✅ Advanced portfolio analytics</li>
+                    </ul>
+                `,
+                cta: "Start DeFi Journey"
+            },
+            privacy: {
+                html: `
+                    <h4>🔒 Privacy-First Tools</h4>
+                    <p>Protect your digital footprint with enterprise-grade privacy solutions.</p>
+                    <ul>
+                        <li>✅ End-to-end encryption</li>
+                        <li>✅ Zero-knowledge authentication</li>
+                        <li>✅ Anonymous browsing</li>
+                    </ul>
+                `,
+                cta: "Secure Your Privacy"
+            },
+            travel: {
+                html: `
+                    <h4>✈️ Exclusive Travel Deals</h4>
+                    <p>Discover hidden gems and luxury accommodations at unbeatable prices.</p>
+                    <ul>
+                        <li>✅ 40% off premium hotels</li>
+                        <li>✅ Private jet discounts</li>
+                        <li>✅ VIP travel concierge</li>
+                    </ul>
+                `,
+                cta: "Book Your Adventure"
+            },
+            gaming: {
+                html: `
+                    <h4>🎮 Gaming Paradise</h4>
+                    <p>Level up with exclusive gaming gear and early access to new releases.</p>
+                    <ul>
+                        <li>✅ 50% off gaming peripherals</li>
+                        <li>✅ Beta access to AAA titles</li>
+                        <li>✅ Professional coaching sessions</li>
+                    </ul>
+                `,
+                cta: "Power Up Now"
+            },
+            technology: {
+                html: `
+                    <h4>💻 Tech Innovation Hub</h4>
+                    <p>Stay ahead with cutting-edge technology and developer tools.</p>
+                    <ul>
+                        <li>✅ Cloud credits worth $500</li>
+                        <li>✅ Premium API access</li>
+                        <li>✅ Technical mentorship</li>
+                    </ul>
+                `,
+                cta: "Innovate Today"
+            },
+            finance: {
+                html: `
+                    <h4>📈 Smart Investment Platform</h4>
+                    <p>Maximize returns with AI-powered investment strategies and insights.</p>
+                    <ul>
+                        <li>✅ Automated portfolio rebalancing</li>
+                        <li>✅ Real-time market analysis</li>
+                        <li>✅ Tax optimization tools</li>
+                    </ul>
+                `,
+                cta: "Invest Smarter"
+            }
+        };
+
+        return adContent[tag] || adContent.defi;
+    }
+
+    /**
+     * Load fallback ad content
+     * @returns {Promise<Object>} Fallback ad content
+     */
+    async loadFallbackAd() {
+        return {
+            html: `
+                <h4>🌟 Discover ZooKies</h4>
+                <p>Privacy-first advertising platform powered by zero-knowledge proofs.</p>
+                <ul>
+                    <li>✅ Earn rewards for engagement</li>
+                    <li>✅ Complete privacy protection</li>
+                    <li>✅ Personalized without tracking</li>
+                </ul>
+            `,
+            cta: "Join ZooKies"
+        };
+    }
+
+    /**
+     * Add basic styling for rendered ads
+     */
+    addAdStyles() {
+        // Check if styles already exist
+        if (document.getElementById('zk-ad-styles')) {
+            return;
+        }
+
+        const styles = document.createElement('style');
+        styles.id = 'zk-ad-styles';
+        styles.textContent = `
+            .zk-targeted-ad {
+                border: 2px solid #e1e5e9;
+                border-radius: 8px;
+                margin: 20px 0;
+                background: #ffffff;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                transition: all 0.3s ease;
+            }
+            
+            .zk-targeted-ad:hover {
+                box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            }
+            
+            .ad-content.targeted {
+                border-left: 4px solid #00d4aa;
+                background: linear-gradient(135deg, #f8fffd 0%, #f0fff9 100%);
+            }
+            
+            .ad-content.fallback {
+                border-left: 4px solid #6c757d;
+                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            }
+            
+            .ad-content.error {
+                border-left: 4px solid #dc3545;
+                background: linear-gradient(135deg, #fff5f5 0%, #ffeaea 100%);
+            }
+            
+            .ad-header {
+                padding: 16px 20px 8px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            
+            .ad-header h3, .ad-header h4 {
+                margin: 0;
+                color: #1a1a1a;
+                font-size: 18px;
+                font-weight: 600;
+            }
+            
+            .zk-badge {
+                background: #00d4aa;
+                color: white;
+                padding: 4px 8px;
+                border-radius: 12px;
+                font-size: 12px;
+                font-weight: 500;
+            }
+            
+            .fallback-badge {
+                background: #6c757d;
+                color: white;
+                padding: 4px 8px;
+                border-radius: 12px;
+                font-size: 12px;
+                font-weight: 500;
+            }
+            
+            .ad-body {
+                padding: 8px 20px;
+                color: #333;
+            }
+            
+            .ad-body ul {
+                margin: 12px 0;
+                padding-left: 0;
+                list-style: none;
+            }
+            
+            .ad-body li {
+                margin: 6px 0;
+                font-size: 14px;
+            }
+            
+            .ad-footer {
+                padding: 12px 20px 16px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            
+            .ad-button {
+                background: #007bff;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-weight: 500;
+                transition: background 0.3s ease;
+            }
+            
+            .ad-button:hover {
+                background: #0056b3;
+            }
+            
+            .zk-proof-info, .fallback-reason {
+                font-size: 12px;
+                color: #666;
+                font-style: italic;
+            }
+        `;
+        
+        document.head.appendChild(styles);
+    }
+
+    /**
+     * Get ZkProofBuilder instance
+     * @returns {Object|null} ZkProofBuilder instance or null if not available
+     */
+    getZkProofBuilder() {
+        if (typeof window !== 'undefined' && window.getZkProofBuilder) {
+            return window.getZkProofBuilder();
+        }
+        
+        console.warn('⚠️ ZkProofBuilder not available');
+        return null;
+    }
 }
 
 // Export for Node.js environment
@@ -1195,9 +1704,204 @@ if (typeof window !== 'undefined') {
         window.zkAgent.getWalletShort = () => window.zkAffinityAgent.getWalletShort();
         window.zkAgent.ensureWalletAndProfile = () => window.zkAffinityAgent.ensureWalletAndProfile();
         window.zkAgent.getProfile = () => window.zkAffinityAgent.getProfileSummary();
+
+        // ========================================================================================
+        // JUDGE-FRIENDLY ZK PROOF DEMO METHODS
+        // ========================================================================================
+
+        /**
+         * Judge-friendly ZK proof demonstration
+         * @param {string} tag - Target tag (default: "defi")
+         * @param {number} threshold - Minimum attestations (default: 2)
+         * @returns {Promise<Object>} Proof demonstration result
+         */
+        window.zkAffinityAgent.proveDemo = async (tag = "defi", threshold = 2) => {
+            console.log("🔐 ZK Proof Demo Starting...");
+            console.log(`🎯 Target: ${tag} (threshold: ${threshold})`);
+            
+            try {
+                const result = await window.zkAffinityAgent.prove({ tag, threshold });
+                
+                console.log("📊 Proof Result:", result);
+                
+                if (result.success) {
+                    console.log("✅ Proof generated successfully!");
+                    console.log("🎯 Verification:", result.verification);
+                    console.log("📈 Attestation count:", result.attestationCount);
+                    console.log("💰 Wallet address:", result.walletAddress);
+                    console.log("⏰ Generated at:", new Date(result.timestamp).toLocaleString());
+                    
+                    // Show proof structure (abbreviated for console readability)
+                    if (result.proof && result.proof.pi_a) {
+                        console.log("🔧 Proof structure:");
+                        console.log("  - pi_a:", result.proof.pi_a.slice(0, 2).map(x => x.substring(0, 10) + "..."));
+                        console.log("  - pi_b:", result.proof.pi_b[0].slice(0, 2).map(x => x.substring(0, 10) + "..."));
+                        console.log("  - pi_c:", result.proof.pi_c.slice(0, 2).map(x => x.substring(0, 10) + "..."));
+                    }
+                    
+                    if (result.publicSignals) {
+                        console.log("📡 Public signals:", result.publicSignals);
+                    }
+                } else {
+                    console.log("❌ Proof failed:", result.error);
+                    console.log("💡 Tip: Try clicking some ads first to generate attestations!");
+                }
+                
+                return result;
+            } catch (error) {
+                console.error("💥 Demo error:", error.message);
+                return { success: false, error: error.message };
+            }
+        };
+
+        /**
+         * Demonstrate ad targeting with ZK proof
+         * @param {string} tag - Target tag
+         * @param {number} threshold - Minimum attestations
+         * @returns {Promise<Object>} Ad targeting demonstration result
+         */
+        window.zkAffinityAgent.adDemo = async (tag = "defi", threshold = 2) => {
+            console.log("🎯 Ad Targeting Demo Starting...");
+            
+            try {
+                const adResult = await window.zkAffinityAgent.requestAd({ tag, threshold });
+                
+                console.log("📊 Ad Targeting Result:", adResult);
+                
+                if (adResult.qualified) {
+                    console.log("✅ User qualifies for targeted ad!");
+                    console.log("🎯 Targeting reason:", adResult.targetingReason);
+                    console.log("📝 Ad content available:", !!adResult.adContent);
+                } else {
+                    console.log("❌ User does not qualify for targeted ad");
+                    console.log("💬 Reason:", adResult.reason);
+                    console.log("🔄 Fallback ad provided:", !!adResult.fallbackAd);
+                }
+                
+                return adResult;
+            } catch (error) {
+                console.error("💥 Ad demo error:", error.message);
+                return { success: false, error: error.message };
+            }
+        };
+
+        /**
+         * Complete end-to-end ZK advertising pipeline demonstration
+         * @param {string} tag - Target tag
+         * @param {number} threshold - Minimum attestations
+         * @returns {Promise<Object>} Complete pipeline demonstration result
+         */
+        window.zkAffinityAgent.fullDemo = async (tag = "defi", threshold = 2) => {
+            console.log("🚀 Full ZK Advertising Pipeline Demo Starting...");
+            console.log("=" .repeat(60));
+            
+            try {
+                // Step 1: Show current profile
+                console.log("📋 Step 1: Current Profile Status");
+                const profile = window.zkAffinityAgent.getProfileSummary();
+                console.log("  Wallet:", profile.walletAddress ? profile.walletAddress.substring(0, 10) + "..." : "Not initialized");
+                console.log("  Total attestations:", profile.totalAttestations);
+                console.log("  Tag counts:", profile.tagCounts);
+                console.log("");
+                
+                // Step 2: Generate ZK proof
+                console.log("🔐 Step 2: ZK Proof Generation");
+                const proofResult = await window.zkAffinityAgent.prove({ tag, threshold });
+                console.log("  Proof success:", proofResult.success);
+                if (proofResult.success) {
+                    console.log("  Verification:", proofResult.verification?.valid ? "VALID" : "INVALID");
+                    console.log("  Attestation count:", proofResult.attestationCount);
+                } else {
+                    console.log("  Error:", proofResult.error);
+                }
+                console.log("");
+                
+                // Step 3: Ad targeting
+                console.log("🎯 Step 3: Ad Targeting");
+                const adResult = await window.zkAffinityAgent.requestAd({ tag, threshold });
+                console.log("  Qualified for targeted ad:", adResult.qualified);
+                console.log("  Targeting reason:", adResult.targetingReason || adResult.reason);
+                console.log("");
+                
+                // Step 4: Render ad (if in browser)
+                if (typeof document !== 'undefined') {
+                    console.log("🎨 Step 4: Ad Rendering");
+                    
+                    // Create demo container if it doesn't exist
+                    let demoContainer = document.getElementById('zk-demo-container');
+                    if (!demoContainer) {
+                        demoContainer = document.createElement('div');
+                        demoContainer.id = 'zk-demo-container';
+                        demoContainer.style.cssText = 'margin: 20px; padding: 20px; border: 2px dashed #ccc; border-radius: 8px;';
+                        demoContainer.innerHTML = '<h3>🎯 ZK Proof Demo Ad Container</h3>';
+                        document.body.appendChild(demoContainer);
+                    }
+                    
+                    const adElement = await window.zkAffinityAgent.renderAd(tag, demoContainer, { threshold });
+                    console.log("  Ad rendered successfully:", !!adElement);
+                    console.log("  Ad element class:", adElement.className);
+                    console.log("");
+                }
+                
+                console.log("✅ Full ZK Advertising Pipeline Demo Complete!");
+                console.log("=" .repeat(60));
+                
+                return {
+                    success: true,
+                    steps: {
+                        profile,
+                        proof: proofResult,
+                        targeting: adResult
+                    }
+                };
+                
+            } catch (error) {
+                console.error("💥 Full demo error:", error.message);
+                return { success: false, error: error.message };
+            }
+        };
+
+        /**
+         * Quick help guide for judges
+         */
+        window.zkAffinityAgent.help = () => {
+            console.log("🔧 ZK Affinity Agent - Judge Demo Commands");
+            console.log("=" .repeat(50));
+            console.log("");
+            console.log("📋 Profile & Wallet:");
+            console.log("  window.zkAgent.getProfile()      - View user profile");
+            console.log("  window.zkAgent.getWallet()       - Get wallet details");
+            console.log("  window.zkAgent.getWalletShort()  - Get short wallet address");
+            console.log("");
+            console.log("🔐 ZK Proof Generation:");
+            console.log("  window.zkAffinityAgent.proveDemo()                    - Basic proof demo (defi, threshold=2)");
+            console.log("  window.zkAffinityAgent.proveDemo('privacy', 3)        - Custom tag and threshold");
+            console.log("");
+            console.log("🎯 Ad Targeting:");
+            console.log("  window.zkAffinityAgent.adDemo()                       - Ad targeting demo (defi, threshold=2)");
+            console.log("  window.zkAffinityAgent.adDemo('travel', 2)            - Custom targeting demo");
+            console.log("");
+            console.log("🚀 Complete Pipeline:");
+            console.log("  window.zkAffinityAgent.fullDemo()                     - Full end-to-end demo (defi, threshold=2)");
+            console.log("  window.zkAffinityAgent.fullDemo('gaming', 3)          - Custom full demo");
+            console.log("");
+            console.log("🎨 Ad Rendering:");
+            console.log("  window.zkAffinityAgent.renderAd('defi')               - Render ad for defi tag");
+            console.log("  window.zkAffinityAgent.renderAd('privacy', container) - Render in specific container");
+            console.log("");
+            console.log("💡 Available tags: defi, privacy, travel, gaming, technology, finance");
+            console.log("💡 Try clicking ads on publisher sites first to generate attestations!");
+        };
+
+        // Add convenient shortcuts for judges
+        window.zkAgent.prove = window.zkAffinityAgent.proveDemo;
+        window.zkAgent.ad = window.zkAffinityAgent.adDemo;
+        window.zkAgent.demo = window.zkAffinityAgent.fullDemo;
+        window.zkAgent.help = window.zkAffinityAgent.help;
         
         console.log('🌐 zkAffinityAgent available globally as window.zkAffinityAgent');
         console.log('🔧 Debug methods available via window.zkAgent');
+        console.log('🎯 ZK Proof demo methods available! Try: window.zkAgent.help()');
     } catch (error) {
         console.error('❌ Failed to create zkAffinityAgent singleton:', error);
         console.error('Error details:', error.message, error.stack);
