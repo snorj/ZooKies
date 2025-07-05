@@ -8,6 +8,9 @@ let zkAgent;
 let currentUser = null;
 let userAttestations = [];
 
+// Ensure zkAgent is available globally
+window.zkAgent = null;
+
 // Initialize site-specific functionality
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('TheModernByte - Site initializing...');
@@ -15,6 +18,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     try {
         // Use the global zkAffinityAgent singleton
         zkAgent = window.zkAffinityAgent;
+        window.zkAgent = zkAgent; // Make it globally accessible
         if (!zkAgent) {
             throw new Error('zkAffinityAgent not available');
         }
@@ -33,7 +37,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         console.log('TheModernByte - Site initialized successfully');
     } catch (error) {
         console.error('Failed to initialize site:', error);
-        showMessage('Failed to initialize site functionality', 'error');
+        showErrorMessage('Failed to initialize site functionality');
     }
 });
 
@@ -76,28 +80,16 @@ async function handleAdCardClick(event) {
     const adCard = event.currentTarget;
     const adTag = adCard.getAttribute('data-tag');
     const adId = adCard.getAttribute('data-ad-id');
+    const adTitle = adCard.querySelector('h3')?.textContent || '';
+    const adDescription = adCard.querySelector('p')?.textContent || '';
     
-    console.log('Ad clicked:', { adTag, adId });
+    console.log('Ad clicked:', { adTag, adId, adTitle });
     
     try {
         // Show loading state
         adCard.style.opacity = '0.7';
         
-        // Create attestation for ad interaction
-        const attestationData = {
-            action: 'ad_click',
-            tag: adTag,
-            adId: adId,
-            timestamp: Date.now(),
-            publisher: 'themodernbyte',
-            context: {
-                article: getClosestArticleTitle(adCard),
-                userAgent: navigator.userAgent,
-                referrer: document.referrer || 'direct'
-            }
-        };
-        
-        // Use zkAffinityAgent's onAdClick method
+        // Create attestation for ad interaction - this will handle the modal display
         const result = await zkAgent.onAdClick(adTag, 'themodernbyte.com');
         
         if (result.success) {
@@ -107,14 +99,14 @@ async function handleAdCardClick(event) {
             await updateUserProfile(adTag);
             
             // Show success message
-            showMessage('Ad interaction recorded successfully!', 'success');
+            showSuccessMessage('Ad interaction recorded successfully!');
         } else {
             throw new Error(result.error || 'Failed to create attestation');
         }
         
     } catch (error) {
         console.error('Error handling ad click:', error);
-        showMessage('Failed to record ad interaction', 'error');
+        showErrorMessage('Failed to record ad interaction');
     } finally {
         // Restore ad card appearance
         adCard.style.opacity = '1';
@@ -122,17 +114,13 @@ async function handleAdCardClick(event) {
 }
 
 // Show ad modal with specific content
-function showAdModal(adTag, adId, adCard) {
+function showAdModal(adId, adTitle, adCard) {
     const modalOverlay = document.getElementById('adModalOverlay');
     const modalTitle = document.getElementById('adModalTitle');
     const modalContent = document.getElementById('adModalContent');
     const actionBtn = document.getElementById('adActionBtn');
     
-    // Get ad content from the card
-    const adTitle = adCard.querySelector('h3').textContent;
-    const adDescription = adCard.querySelector('p').textContent;
-    
-    // Set modal content based on ad type
+    // Set modal title
     modalTitle.textContent = adTitle;
     
     let modalHtml = '';
@@ -143,8 +131,8 @@ function showAdModal(adTag, adId, adCard) {
         case 'neobank-apy':
             modalHtml = `
                 <div class="ad-detail">
-                    <h4>💰 NeoBank+ High Yield Savings</h4>
-                    <p>${adDescription}</p>
+                    <h4>💰 High Yield Savings</h4>
+                    <p>Earn 5.00% APY on all balances with no minimum deposit required.</p>
                     <ul class="ad-features">
                         <li>✓ 5.00% APY on all balances</li>
                         <li>✓ No minimum balance required</li>
@@ -319,10 +307,10 @@ async function refreshProfile() {
     
     try {
         await initializeProfile();
-        showMessage('Profile refreshed successfully!', 'success');
+        showSuccessMessage('Profile refreshed successfully!');
     } catch (error) {
         console.error('Error refreshing profile:', error);
-        showMessage('Failed to refresh profile', 'error');
+        showErrorMessage('Failed to refresh profile');
     }
 }
 
@@ -345,10 +333,10 @@ async function resetProfile() {
         // Update display
         updateProfileDisplay();
         
-        showMessage('Profile reset successfully!', 'success');
+        showSuccessMessage('Profile reset successfully!');
     } catch (error) {
         console.error('Error resetting profile:', error);
-        showMessage('Failed to reset profile', 'error');
+        showErrorMessage('Failed to reset profile');
     }
 }
 
@@ -405,22 +393,53 @@ function setupNavigation() {
     sections.forEach(section => observer.observe(section));
 }
 
-// Show success or error messages
-function showMessage(message, type = 'success') {
+// Show error message
+function showErrorMessage(message) {
     const container = document.getElementById('messageContainer');
-    if (!container) return;
+    if (!container) {
+        console.error('Message container not found');
+        return;
+    }
     
-    const messageElement = document.createElement('div');
-    messageElement.className = `${type}-message`;
-    messageElement.textContent = message;
+    const msgElement = document.createElement('div');
+    msgElement.className = 'message error';
+    msgElement.textContent = message;
+    msgElement.setAttribute('role', 'alert');
     
-    container.appendChild(messageElement);
+    // Remove any existing error messages
+    container.querySelectorAll('.message.error').forEach(el => el.remove());
     
-    // Remove message after 5 seconds
+    // Add new message
+    container.appendChild(msgElement);
+    
+    // Auto-remove after 5 seconds
     setTimeout(() => {
-        if (messageElement.parentNode) {
-            messageElement.parentNode.removeChild(messageElement);
-        }
+        msgElement.remove();
+    }, 5000);
+}
+
+// Show success message
+function showSuccessMessage(message) {
+    const container = document.getElementById('messageContainer');
+    if (!container) {
+        console.error('Message container not found');
+        return;
+    }
+    
+    const msgElement = document.createElement('div');
+    msgElement.className = 'message success';
+    msgElement.textContent = message;
+    msgElement.setAttribute('role', 'status');
+    
+    // Remove any existing success messages
+    container.querySelectorAll('.message.success').forEach(el => el.remove());
+    
+    // Add new message
+    container.appendChild(msgElement);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        msgElement.remove();
     }, 5000);
 }
 

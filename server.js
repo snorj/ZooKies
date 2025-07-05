@@ -50,7 +50,17 @@ app.use((req, res, next) => {
 app.use('/themodernbyte', express.static(path.join(__dirname, 'themodernbyte')));
 app.use('/smartlivingguide', express.static(path.join(__dirname, 'smartlivingguide')));
 app.use('/shared', express.static(path.join(__dirname, 'shared')));
+app.use('/lib', express.static(path.join(__dirname, 'lib')));
+// Fallback to node_modules for library files
 app.use('/lib', express.static(path.join(__dirname, 'node_modules')));
+
+// Serve specific ethers files from node_modules as fallback
+app.get('/lib/ethers/*', (req, res, next) => {
+  const requestedFile = req.path.replace('/lib/ethers/', '');
+  res.sendFile(path.join(__dirname, 'node_modules', 'ethers', 'dist', requestedFile), (err) => {
+    if (err) next();
+  });
+});
 
 /**
  * Basic Routes

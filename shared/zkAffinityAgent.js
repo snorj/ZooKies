@@ -180,9 +180,9 @@ class ZkAffinityAgent {
                     this.wallet = new ethers.Wallet(storedPrivateKey);
                     console.log('🔑 Wallet loaded from localStorage:', this.wallet.address);
                 } else {
-                    // Create random wallet for demo purposes
-                    this.wallet = ethers.Wallet.createRandom();
-                    console.log('🔑 New wallet created:', this.wallet.address);
+            // Create random wallet for demo purposes
+            this.wallet = ethers.Wallet.createRandom();
+            console.log('🔑 New wallet created:', this.wallet.address);
                 }
             } else {
                 // Node.js environment - create random wallet

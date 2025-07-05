@@ -47,10 +47,10 @@
                 </article>
 
                 <!-- Targeted Finance Ad for AI Article -->
-                <div class="ad-card" data-tag="finance" data-ad-id="neobank-apy">
-                    <h3>NeoBank+ 5% APY</h3>
-                    <p>💰 Upgrade to 5% APY with NeoBank+ - No minimums. No tricks. Just high yield.</p>
-                    <button class="ad-cta ad-click-btn">Learn More</button>
+                <div class="ad-card" data-ad-id="neobank-apy" data-tag="finance">
+                    <h3>NeoBank+ High Yield Savings</h3>
+                    <p>Earn 5.00% APY on all balances with no minimum deposit required.</p>
+                    <button class="ad-cta">Learn More</button>
                 </div>
 
                 <!-- Article 2: Browser Privacy -->
@@ -69,10 +69,10 @@
                 </article>
 
                 <!-- Targeted Privacy Ad for Browser Article -->
-                <div class="ad-card" data-tag="privacy" data-ad-id="clearvpn">
-                    <h3>ClearVPN Privacy Shield</h3>
-                    <p>🛡️ Stop Trackers with ClearVPN - Browse privately. No logs. No tracking.</p>
-                    <button class="ad-cta ad-click-btn">Protect Your Privacy</button>
+                <div class="ad-card" data-ad-id="clearvpn" data-tag="privacy">
+                    <h3>ClearVPN Privacy Protection</h3>
+                    <p>Military-grade encryption with zero-log policy. Stay safe online.</p>
+                    <button class="ad-cta">Learn More</button>
                 </div>
 
                 <!-- Article 3: Finance -->
@@ -128,7 +128,7 @@
 
     <!-- Profile Viewer Component -->
     <div class="profile-viewer" id="profileViewer">
-        <h3>My Profile</h3>
+        <h3>Your Profile</h3>
         <div class="profile-content">
             <div class="profile-item">
                 <span class="profile-label">Attestations:</span>
@@ -149,17 +149,27 @@
         </div>
     </div>
 
+    <!-- Ad Modal Overlay -->
+    <div id="adModalOverlay" class="ad-modal-overlay" style="display: none;">
+        <div id="adModal" class="ad-modal" tabindex="-1" role="dialog" aria-labelledby="adModalTitle">
+            <h2 id="adModalTitle"></h2>
+            <div id="adModalContent"></div>
+            <button id="adActionBtn" class="ad-cta" type="button">Learn More</button>
+            <button class="modal-close" type="button" onclick="closeAdModal()" aria-label="Close">×</button>
+        </div>
+    </div>
+
     <!-- Success/Error Messages Container -->
     <div id="messageContainer"></div>
 
     <!-- Scripts -->
-    <script src="../lib/ethers/dist/ethers.umd.min.js"></script>
-    <script src="../shared/cryptography-browser.js"></script>
-    <script src="../shared/database-browser.js"></script>
-    <script src="../shared/publisher-keys-browser.js"></script>
-            <script>console.log('🧪 Test script executing before zkAffinityAgent.js');</script>
-        <script src="../shared/zkAffinityAgent.js"></script>
-        <script>console.log('🧪 Test script executing after zkAffinityAgent.js');</script>
+    <script src="/lib/ethers/dist/ethers.umd.min.js"></script>
+    <script src="/shared/cryptography-browser.js"></script>
+    <script src="/shared/database-browser.js"></script>
+    <script src="/shared/publisher-keys-browser.js"></script>
+    <script>console.log('🧪 Test script executing before zkAffinityAgent.js');</script>
+    <script src="/shared/zkAffinityAgent.js"></script>
+    <script>console.log('🧪 Test script executing after zkAffinityAgent.js');</script>
     <script src="scripts.js"></script>
 </body>
 </html> 

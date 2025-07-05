@@ -4,20 +4,26 @@
  */
 
 // Global variables
-let zkAgent;
 let currentUser = null;
 let userAttestations = [];
+let zkAgent = null;
+
+// Ensure zkAgent is available globally
+window.zkAgent = null;
 
 // Initialize site-specific functionality
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('Smart Living Guide - Site initializing...');
     
     try {
-        // Use the global zkAffinityAgent singleton
+        // Get zkAffinityAgent singleton
         zkAgent = window.zkAffinityAgent;
+        window.zkAgent = zkAgent; // Make it globally accessible
+        
         if (!zkAgent) {
             throw new Error('zkAffinityAgent not available');
         }
+        
         await zkAgent.initializeWallet();
         console.log('zkAffinityAgent initialized successfully');
         
@@ -69,173 +75,49 @@ function setupEventListeners() {
     });
 }
 
-// Handle ad card clicks
-async function handleAdCardClick(event) {
-    event.preventDefault();
-    
-    const adCard = event.currentTarget;
-    const adTag = adCard.getAttribute('data-tag');
-    const adId = adCard.getAttribute('data-ad-id');
-    
-    console.log('Ad clicked:', { adTag, adId });
-    
-    try {
-        // Show loading state
-        adCard.style.opacity = '0.7';
-        
-        // Create attestation for ad interaction
-        const attestationData = {
-            action: 'ad_click',
-            tag: adTag,
-            adId: adId,
-            timestamp: Date.now(),
-            publisher: 'smartlivingguide',
-            context: {
-                article: getClosestArticleTitle(adCard),
-                userAgent: navigator.userAgent,
-                referrer: document.referrer || 'direct'
-            }
-        };
-        
-        // Use zkAffinityAgent's onAdClick method
-        const result = await zkAgent.onAdClick(adTag, 'smartlivingguide.com');
-        
-        if (result.success) {
-            console.log('Attestation created successfully:', result.attestation);
-            
-            // Update user profile
-            await updateUserProfile(adTag);
-            
-            // Show success message
-            showMessage('Ad interaction recorded successfully!', 'success');
-        } else {
-            throw new Error(result.error || 'Failed to create attestation');
-        }
-        
-    } catch (error) {
-        console.error('Error handling ad click:', error);
-        showMessage('Failed to record ad interaction', 'error');
-    } finally {
-        // Restore ad card appearance
-        adCard.style.opacity = '1';
-    }
+// Show error message
+function showErrorMessage(message) {
+    const container = document.getElementById('messageContainer');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message error';
+    messageDiv.textContent = message;
+    container.appendChild(messageDiv);
+
+    // Remove the message after 5 seconds
+    setTimeout(() => {
+        messageDiv.remove();
+    }, 5000);
 }
 
-// Show ad modal with specific content
-function showAdModal(adTag, adId, adCard) {
-    const modalOverlay = document.getElementById('adModalOverlay');
+// Show success message
+function showSuccessMessage(message) {
+    const container = document.getElementById('messageContainer');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message success';
+    messageDiv.textContent = message;
+    container.appendChild(messageDiv);
+
+    // Remove the message after 5 seconds
+    setTimeout(() => {
+        messageDiv.remove();
+    }, 5000);
+}
+
+// Show ad modal with content
+function showAdModal(title, content) {
+    const modal = document.getElementById('adModalOverlay');
     const modalTitle = document.getElementById('adModalTitle');
     const modalContent = document.getElementById('adModalContent');
-    const actionBtn = document.getElementById('adActionBtn');
     
-    // Get ad content from the card
-    const adTitle = adCard.querySelector('h3').textContent;
-    const adDescription = adCard.querySelector('p').textContent;
-    
-    // Set modal content based on ad type
-    modalTitle.textContent = adTitle;
-    
-    let modalHtml = '';
-    let actionUrl = '#';
-    let actionText = 'Visit Site';
-    
-    switch (adId) {
-        case 'tripmate-pro':
-            modalHtml = `
-                <div class="ad-detail">
-                    <h4>✈️ TripMate Pro AI Travel Planning</h4>
-                    <p>${adDescription}</p>
-                    <ul class="ad-features">
-                        <li>✓ AI-powered itinerary optimization</li>
-                        <li>✓ Real-time flight and hotel monitoring</li>
-                        <li>✓ Automatic rebooking for disruptions</li>
-                        <li>✓ Integrated expense tracking</li>
-                        <li>✓ Travel document management</li>
-                        <li>✓ 24/7 concierge support</li>
-                    </ul>
-                    <div class="pricing-info">
-                        <p><strong>Special Offer:</strong> 50% off first year - $49/year (normally $99)</p>
-                    </div>
-                    <p class="ad-disclaimer">Limited time offer. Terms and conditions apply.</p>
-                </div>
-            `;
-            actionUrl = 'https://tripmate.example.com/pro-signup';
-            actionText = 'Start Free Trial';
-            break;
-            
-        case 'bloom':
-            modalHtml = `
-                <div class="ad-detail">
-                    <h4>🏦 Bloom Interest-Free Banking</h4>
-                    <p>${adDescription}</p>
-                    <ul class="ad-features">
-                        <li>✓ No monthly fees or minimums</li>
-                        <li>✓ 2% cashback on all purchases</li>
-                        <li>✓ Interest-free overdraft protection</li>
-                        <li>✓ Instant payment notifications</li>
-                        <li>✓ Budgeting and savings tools</li>
-                        <li>✓ Free ATM access worldwide</li>
-                    </ul>
-                    <div class="pricing-info">
-                        <p><strong>New User Bonus:</strong> $50 signup bonus + first month free</p>
-                    </div>
-                    <p class="ad-disclaimer">FDIC insured. No credit check required.</p>
-                </div>
-            `;
-            actionUrl = 'https://bloom.example.com/signup';
-            actionText = 'Open Account';
-            break;
-            
-        case 'streamly':
-            modalHtml = `
-                <div class="ad-detail">
-                    <h4>📱 Streamly VPN + Streaming Bundle</h4>
-                    <p>${adDescription}</p>
-                    <ul class="ad-features">
-                        <li>✓ Premium VPN with 80+ countries</li>
-                        <li>✓ Access to 15+ streaming platforms</li>
-                        <li>✓ No logs, military-grade encryption</li>
-                        <li>✓ Unlimited bandwidth and devices</li>
-                        <li>✓ Ad-free streaming experience</li>
-                        <li>✓ 4K streaming supported</li>
-                    </ul>
-                    <div class="pricing-info">
-                        <p><strong>Limited Offer:</strong> 3 months free + 70% off annual plan</p>
-                    </div>
-                    <p class="ad-disclaimer">Cancel anytime. No commitments.</p>
-                </div>
-            `;
-            actionUrl = 'https://streamly.example.com/bundle';
-            actionText = 'Start Free Trial';
-            break;
-    }
-    
-    // Set modal content
-    modalContent.innerHTML = modalHtml;
-    
-    // Set action button
-    actionBtn.textContent = actionText;
-    actionBtn.onclick = function() {
-        // In a real implementation, this would open the advertiser's site
-        console.log('Would redirect to:', actionUrl);
-        showMessage(`Would redirect to ${actionUrl}`, 'info');
-        closeAdModal();
-    };
-    
-    // Show modal
-    modalOverlay.style.display = 'flex';
-    modalOverlay.setAttribute('aria-hidden', 'false');
-    
-    // Focus management for accessibility
-    const modal = document.getElementById('adModal');
-    modal.focus();
+    modalTitle.textContent = title;
+    modalContent.innerHTML = content;
+    modal.style.display = 'flex';
 }
 
 // Close ad modal
 function closeAdModal() {
-    const modalOverlay = document.getElementById('adModalOverlay');
-    modalOverlay.style.display = 'none';
-    modalOverlay.setAttribute('aria-hidden', 'true');
+    const modal = document.getElementById('adModalOverlay');
+    modal.style.display = 'none';
 }
 
 // Get closest article title for context
@@ -480,4 +362,62 @@ function getAdStats() {
     });
     
     return stats;
-} 
+}
+
+// Handle ad card click
+async function handleAdCardClick(event) {
+    const adCard = event.target.closest('.ad-card');
+    if (!adCard) return;
+    
+    const adId = adCard.getAttribute('data-ad-id');
+    const adTag = adCard.getAttribute('data-tag');
+    
+    try {
+        // Show loading state
+        adCard.style.opacity = '0.7';
+        
+        // Use zkAffinityAgent's onAdClick method - this will handle the modal display
+        const result = await zkAgent.onAdClick(adTag, 'smartlivingguide.com');
+        
+        if (result.success) {
+            console.log('Attestation created successfully:', result.attestation);
+            
+            // Update user profile
+            await updateUserProfile(adTag);
+            
+            // Show success message
+            showSuccessMessage('Ad interaction recorded successfully!');
+        } else {
+            throw new Error('Failed to create attestation');
+        }
+    } catch (error) {
+        console.error('Error handling ad click:', error);
+        showErrorMessage('Failed to process ad interaction. Please try again.');
+    } finally {
+        // Reset loading state
+        adCard.style.opacity = '1';
+    }
+}
+
+// Initialize event listeners
+document.addEventListener('DOMContentLoaded', () => {
+    // Add click handlers to all ad cards
+    document.querySelectorAll('.ad-card').forEach(card => {
+        card.addEventListener('click', handleAdCardClick);
+    });
+
+    // Add click handler to modal close button
+    const closeBtn = document.querySelector('.modal-close');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeAdModal);
+    }
+
+    // Add click handler to modal action button
+    const actionBtn = document.getElementById('adActionBtn');
+    if (actionBtn) {
+        actionBtn.addEventListener('click', () => {
+            showSuccessMessage('Action completed successfully!');
+            closeAdModal();
+        });
+    }
+}); 

@@ -114,10 +114,10 @@
                 </article>
 
                 <!-- Targeted Finance Ad for Banking Article -->
-                <div class="ad-card" data-tag="finance" data-ad-id="bloom">
-                    <h3>🏦 No Hidden Fees: Meet Bloom</h3>
-                    <p>The interest-free debit card that pays you back.</p>
-                    <button class="ad-cta ad-click-btn">Get Started</button>
+                <div class="ad-card" data-ad-id="bloom" data-tag="finance">
+                    <h3>Bloom Smart Debit Card</h3>
+                    <p>2% cashback on all purchases, no annual fee, and smart spending insights.</p>
+                    <button class="ad-cta">Learn More</button>
                 </div>
 
                 <!-- Article 3: Smart Home/Privacy -->
@@ -228,6 +228,16 @@
         </div>
     </div>
 
+    <!-- Ad Modal Overlay -->
+    <div id="adModalOverlay" class="ad-modal-overlay" style="display: none;">
+        <div id="adModal" class="ad-modal" tabindex="-1" role="dialog" aria-labelledby="adModalTitle">
+            <h2 id="adModalTitle"></h2>
+            <div id="adModalContent"></div>
+            <button id="adActionBtn" class="ad-cta" type="button">Learn More</button>
+            <button class="modal-close" type="button" onclick="closeAdModal()" aria-label="Close">×</button>
+        </div>
+    </div>
+
     <!-- Success/Error Messages Container -->
     <div id="messageContainer"></div>
 
@@ -236,7 +246,9 @@
     <script src="../shared/cryptography-browser.js"></script>
     <script src="../shared/database-browser.js"></script>
     <script src="../shared/publisher-keys-browser.js"></script>
+    <script>console.log('🧪 Test script executing before zkAffinityAgent.js');</script>
     <script src="../shared/zkAffinityAgent.js"></script>
+    <script>console.log('🧪 Test script executing after zkAffinityAgent.js');</script>
     <script src="scripts.js"></script>
 </body>
 </html> 
