@@ -24,7 +24,6 @@
     
     <!-- Stylesheets -->
     <link rel="stylesheet" href="styles/main.css">
-    <link rel="stylesheet" href="styles/ad-styles.css">
     
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
@@ -58,7 +57,7 @@
             <div class="content-grid">
                 <!-- Primary Content Area -->
                 <section class="primary-content">
-                    <article class="featured-story">
+                    <article class="featured-story" id="article-1" data-article-id="1" data-article-tag="privacy">
                         <header class="article-header">
                             <h2>Breaking: New Privacy Regulations Reshape Digital Advertising</h2>
                             <div class="article-meta">
@@ -73,15 +72,8 @@
                         </div>
                     </article>
 
-                    <!-- Ad Container - Primary -->
-                    <aside class="ad-container primary-ad" id="ad-container" role="complementary" aria-label="Sponsored content">
-                        <div class="ad-placeholder">
-                            <p>Advertisement</p>
-                        </div>
-                    </aside>
-
                     <div class="news-grid">
-                        <article class="news-item">
+                        <article class="news-item" id="article-2" data-article-id="2" data-article-tag="technology">
                             <header class="article-header">
                                 <h3>Tech Giants Announce New Blockchain Initiative</h3>
                                 <div class="article-meta">
@@ -94,9 +86,9 @@
                             </div>
                         </article>
 
-                        <article class="news-item">
+                        <article class="news-item" id="article-3" data-article-id="3" data-article-tag="finance">
                             <header class="article-header">
-                                <h3>Financial Markets See Surge in Privacy-Focused Investments</h3>
+                                <h3>Financial Markets See Surge in Privacy-Focused Investments <span class="finance-badge">💰 Finance</span></h3>
                                 <div class="article-meta">
                                     <time datetime="2024-01-14">January 14, 2024</time>
                                     <span class="category">Finance</span>
@@ -107,7 +99,7 @@
                             </div>
                         </article>
 
-                        <article class="news-item">
+                        <article class="news-item" id="article-4" data-article-id="4" data-article-tag="gaming">
                             <header class="article-header">
                                 <h3>Gaming Industry Embraces Zero-Knowledge Proof Technology</h3>
                                 <div class="article-meta">
@@ -127,19 +119,12 @@
                     <section class="trending-section">
                         <h3>Trending Topics</h3>
                         <ul class="trending-list">
-                            <li><a href="#" aria-label="Read about Privacy Technology">Privacy Technology</a></li>
-                            <li><a href="#" aria-label="Read about Blockchain Innovation">Blockchain Innovation</a></li>
-                            <li><a href="#" aria-label="Read about Digital Security">Digital Security</a></li>
-                            <li><a href="#" aria-label="Read about DeFi Updates">DeFi Updates</a></li>
-                            <li><a href="#" aria-label="Read about Gaming Tech">Gaming Tech</a></li>
+                            <li><a href="#" data-article-id="5" data-article-tag="privacy" aria-label="Read about Privacy Technology">Privacy Technology</a></li>
+                            <li><a href="#" data-article-id="6" data-article-tag="technology" aria-label="Read about Blockchain Innovation">Blockchain Innovation</a></li>
+                            <li><a href="#" data-article-id="7" data-article-tag="privacy" aria-label="Read about Digital Security">Digital Security</a></li>
+                            <li><a href="#" data-article-id="8" data-article-tag="finance" aria-label="Read about DeFi Updates">DeFi Updates <span class="finance-badge">💰 Finance</span></a></li>
+                            <li><a href="#" data-article-id="9" data-article-tag="gaming" aria-label="Read about Gaming Tech">Gaming Tech</a></li>
                         </ul>
-                    </section>
-
-                    <!-- Ad Container - Sidebar -->
-                    <section class="ad-container sidebar-ad" id="sidebar-ad-container" role="complementary" aria-label="Sidebar sponsored content">
-                        <div class="ad-placeholder">
-                            <p>Sidebar Ad</p>
-                        </div>
                     </section>
 
                     <section class="newsletter-signup">
@@ -191,7 +176,6 @@
     </footer>
 
     <!-- Scripts -->
-    <script src="https://unpkg.com/snarkjs@latest/build/snarkjs.min.js"></script>
     <script src="../lib/ethers/dist/ethers.umd.min.js"></script>
     <script src="../lib/idb/idb.umd.js"></script>
     <script src="../shared/cryptography-browser.js"></script>
@@ -201,158 +185,275 @@
     <script src="../shared/privy.js"></script>
     <script src="../shared/profile-store.js"></script>
     <script src="../shared/zkAffinityAgent.js"></script>
-    <script src="scripts/adRenderer.js"></script>
-    <script src="scripts/debugPanel.js"></script>
     
     <!-- Main Application Script -->
     <script>
-        // Main application initialization
-        document.addEventListener('DOMContentLoaded', async function() {
-            console.log('🎯 Spotlite News loading...');
-            
-            // ZK proof modal system replaces the old debug panel
-            
-            // Initialize ZK proof-based ad system
-            console.log('📊 Initializing ZK proof-based ad system...');
-            
+        // Finance keywords for article classification
+        const FINANCE_KEYWORDS = [
+            'finance', 'financial', 'investment', 'investing', 'stocks', 'market', 'markets',
+            'banking', 'bank', 'credit', 'loan', 'loans', 'mortgage', 'insurance', 'savings',
+            'portfolio', 'trading', 'cryptocurrency', 'crypto', 'bitcoin', 'ethereum', 'defi',
+            'yield', 'dividend', 'bonds', 'securities', 'economy', 'economic', 'budget',
+            'retirement', 'pension', 'tax', 'taxes', 'wealth', 'money', 'income'
+        ];
+
+        // Generate unique session ID
+        function generateSessionId() {
+            return 'spotlite-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        }
+
+        // Get or create session ID
+        function getSessionId() {
+            let sessionId = sessionStorage.getItem('spotlite_session_id');
+            if (!sessionId) {
+                sessionId = generateSessionId();
+                sessionStorage.setItem('spotlite_session_id', sessionId);
+            }
+            return sessionId;
+        }
+
+        // Create attestation for article click
+        function createArticleAttestation(articleId, articleTag, articleTitle, isFinanceContent) {
+            const attestation = {
+                timestamp: Date.now(),
+                date: new Date().toISOString(),
+                articleId: articleId,
+                articleTag: articleTag,
+                articleTitle: articleTitle ? articleTitle.substring(0, 100) : 'Unknown',
+                isFinanceContent: isFinanceContent,
+                userAgent: navigator.userAgent.substring(0, 50),
+                sessionId: getSessionId(),
+                site: 'spotlite.news',
+                action: 'article_click'
+            };
+
+            return attestation;
+        }
+
+        // Store attestation in localStorage
+        function storeAttestation(attestation) {
             try {
-                // Check if zkAffinityAgent is available
-                if (typeof window.zkAffinityAgent === 'undefined') {
-                    console.error('❌ zkAffinityAgent not available');
-                    renderNoAd();
-                    return;
+                const existing = JSON.parse(localStorage.getItem('zookies_attestations') || '[]');
+                existing.push(attestation);
+                
+                // Keep only last 100 attestations
+                if (existing.length > 100) {
+                    existing.splice(0, existing.length - 100);
                 }
                 
-                // 🎯 NEW: Dynamic ad targeting - check what user qualifies for
-                console.log('🔍 Checking what ad categories user qualifies for...');
-                const qualifiedTags = await window.zkAffinityAgent.getQualifiedTags(2);
-                const bestTag = await window.zkAffinityAgent.getBestQualifiedTag(2);
+                localStorage.setItem('zookies_attestations', JSON.stringify(existing));
+                console.log('📝 Attestation stored:', attestation);
+            } catch (error) {
+                console.error('❌ Failed to store attestation:', error);
+            }
+        }
+
+        // Track finance article clicks
+        function trackFinanceArticleClick(articleId, articleTitle) {
+            try {
+                const financeClicks = JSON.parse(localStorage.getItem('spotlite_finance_clicks') || '[]');
+                const clickData = {
+                    timestamp: Date.now(),
+                    date: new Date().toISOString(),
+                    articleId: articleId,
+                    articleTitle: articleTitle,
+                    sessionId: getSessionId(),
+                    site: 'spotlite.news'
+                };
                 
-                console.log('📊 Qualified categories:', qualifiedTags);
-                console.log('🏆 Best category:', bestTag);
+                financeClicks.push(clickData);
+                localStorage.setItem('spotlite_finance_clicks', JSON.stringify(financeClicks));
                 
-                if (!bestTag) {
-                    console.log('❌ User does not qualify for any ad categories');
-                    renderNoAd();
-                    return;
+                console.log('💰 Finance article clicked:', clickData);
+                console.log(`📊 Total finance clicks: ${financeClicks.length}`);
+                
+                // Check if user qualifies for ads (2+ finance clicks)
+                if (financeClicks.length >= 2) {
+                    console.log('🎯 User qualifies for targeted ads!');
+                    
+                    // Emit custom event for ZooKies integration
+                    window.dispatchEvent(new CustomEvent('user-qualified-for-ads', {
+                        detail: {
+                            totalFinanceClicks: financeClicks.length,
+                            qualificationThreshold: 2,
+                            latestClick: clickData,
+                            site: 'spotlite.news'
+                        }
+                    }));
                 }
                 
-                // Request ad for the best qualifying category
-                console.log(`🔍 Requesting ${bestTag} ad with threshold 2...`);
-                const result = await window.zkAffinityAgent.requestAd({ 
-                    tag: bestTag, 
-                    threshold: 2 
-                });
-                
-                console.log('📊 Ad request result:', result);
-                
-                // Check if user qualifies for targeted ads
-                if (result.qualified && result.adContent) {
-                    console.log(`✅ ZK proof verified - rendering targeted ${bestTag} ad`);
-                    
-                    // Render the ad using adRenderer.js with the dynamic tag and ZK proof data
-                    await renderAd(bestTag, result);
-                    
-                    console.log('🔐 ZK icon added to ad - click to view proof details');
-                    
-                } else {
-                    console.log('❌ ZK proof failed or user does not qualify');
-                    
-                    // Show no ads message
-                    renderNoAd();
-                }
+                // Emit finance article click event
+                window.dispatchEvent(new CustomEvent('finance-article-click', {
+                    detail: clickData
+                }));
                 
             } catch (error) {
-                console.error('❌ Ad system initialization failed:', error);
-                
-                // Show error state
-                renderNoAd();
+                console.error('❌ Failed to track finance click:', error);
+            }
+        }
+
+        // Handle article click
+        function handleArticleClick(event) {
+            const target = event.target.closest('[data-article-id]');
+            if (!target) return;
+            
+            const articleId = target.getAttribute('data-article-id');
+            const articleTag = target.getAttribute('data-article-tag');
+            const articleTitle = target.textContent;
+            const isFinanceContent = articleTag === 'finance';
+            
+            console.log('📰 Article clicked:', {
+                id: articleId,
+                tag: articleTag,
+                title: articleTitle,
+                isFinance: isFinanceContent
+            });
+            
+            // Create and store attestation
+            const attestation = createArticleAttestation(articleId, articleTag, articleTitle, isFinanceContent);
+            storeAttestation(attestation);
+            
+            // Special handling for finance articles
+            if (isFinanceContent) {
+                handleFinanceArticleClick(articleId, articleTitle);
+            }
+        }
+
+        // Handle finance article click
+        function handleFinanceArticleClick(articleId, articleTitle) {
+            console.log('💰 Finance article clicked:', articleId, articleTitle);
+            trackFinanceArticleClick(articleId, articleTitle);
+        }
+
+        // Main application initialization
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🎯 Spotlite News loading...');
+            console.log('📊 ZooKies Demo - Finance Article Tracking Mode');
+            
+            // Add click event listeners to all articles
+            const articles = document.querySelectorAll('[data-article-id]');
+            articles.forEach(article => {
+                article.addEventListener('click', handleArticleClick);
+                article.style.cursor = 'pointer';
+            });
+            
+            console.log(`📝 Added click tracking to ${articles.length} articles`);
+            
+            // Initialize demo mode if enabled
+            if (localStorage.getItem('spotlite_demo_mode') === 'true') {
+                toggleDemoMode();
             }
             
             console.log('✅ Spotlite News ready!');
         });
-        
-        // Window hooks for judge testing
-        window.demo = async function() {
-            console.log('🎬 Running full demo flow...');
+
+        // ZooKies Demo Integration Hooks
+        window.getAttestations = function() {
+            const attestations = JSON.parse(localStorage.getItem('zookies_attestations') || '[]');
+            const financeClicks = JSON.parse(localStorage.getItem('spotlite_finance_clicks') || '[]');
             
-            try {
-                // Dynamic demo - check what user qualifies for
-                const bestTag = await window.zkAffinityAgent.getBestQualifiedTag(2);
-                
-                if (!bestTag) {
-                    console.log('❌ User does not qualify for any categories');
-                    renderNoAd();
-                    return { qualified: false, reason: 'No qualifying categories' };
-                }
-                
-                console.log(`🎯 Demo using best category: ${bestTag}`);
-                const result = await window.zkAffinityAgent.requestAd({ tag: bestTag, threshold: 2 });
-                console.log('Demo result:', result);
-                
-                if (result.qualified && result.adContent) {
-                    await renderAd(bestTag, result);
-                    console.log('🔐 ZK icon added to demo ad - click to view proof details');
-                } else {
-                    renderNoAd();
-                }
-                
-                return result;
-            } catch (error) {
-                console.error('Demo failed:', error);
-                return { error: error.message };
-            }
-        };
-        
-        window.testAll = async function() {
-            console.log('🧪 Running comprehensive tests...');
-            
-            const tags = ['finance', 'travel', 'privacy', 'gaming', 'technology'];
-            const results = {};
-            
-            for (const tag of tags) {
-                try {
-                    console.log(`Testing ${tag}...`);
-                    const result = await window.zkAffinityAgent.requestAd({ tag, threshold: 2 });
-                    results[tag] = result;
-                    
-                    // Test ad rendering
-                    if (result.qualified && result.adContent) {
-                        await renderAd(tag, result);
-                    }
-                    
-                } catch (error) {
-                    results[tag] = { error: error.message };
-                }
-            }
-            
-            console.log('Test results:', results);
-            return results;
-        };
-        
-        window.stats = function() {
-            console.log('📊 System Stats:');
-            console.log('Memory:', performance.memory ? performance.memory : 'Not available');
-            console.log('Timing:', performance.timing ? performance.timing : 'Not available');
-            console.log('Support:', {
-                zkAffinityAgent: !!window.zkAffinityAgent,
-                renderAd: typeof window.renderAd === 'function',
-                zkModal: typeof window.closeZkProofModal === 'function'
-            });
-        };
-        
-        // Store last proof result for debugging
-        window.lastProof = null;
-        
-        // Override zkAffinityAgent.requestAd to store results
-        if (typeof window.zkAffinityAgent !== 'undefined') {
-            const originalRequestAd = window.zkAffinityAgent.requestAd.bind(window.zkAffinityAgent);
-            window.zkAffinityAgent.requestAd = async function(params) {
-                const result = await originalRequestAd(params);
-                window.lastProof = result;
-                return result;
+            return {
+                attestations,
+                financeClicks,
+                totalAttestations: attestations.length,
+                totalFinanceClicks: financeClicks.length,
+                qualifiesForAds: financeClicks.length >= 2,
+                site: 'spotlite.news'
             };
-        }
+        };
+
+        window.getFinanceArticles = function() {
+            const financeArticles = [];
+            const articles = document.querySelectorAll('[data-article-tag="finance"]');
+            
+            articles.forEach(article => {
+                financeArticles.push({
+                    id: article.getAttribute('data-article-id'),
+                    title: article.textContent.trim(),
+                    tag: article.getAttribute('data-article-tag'),
+                    element: article
+                });
+            });
+            
+            return financeArticles;
+        };
+
+        window.toggleDemoMode = function() {
+            const isDemoMode = localStorage.getItem('spotlite_demo_mode') === 'true';
+            const newMode = !isDemoMode;
+            
+            localStorage.setItem('spotlite_demo_mode', newMode.toString());
+            
+            const financeArticles = document.querySelectorAll('[data-article-tag="finance"]');
+            financeArticles.forEach(article => {
+                if (newMode) {
+                    article.style.backgroundColor = '#fff3cd';
+                    article.style.border = '2px solid #ffc107';
+                    article.style.borderRadius = '8px';
+                    article.style.padding = '10px';
+                    article.style.margin = '5px 0';
+                } else {
+                    article.style.backgroundColor = '';
+                    article.style.border = '';
+                    article.style.borderRadius = '';
+                    article.style.padding = '';
+                    article.style.margin = '';
+                }
+            });
+            
+            console.log('🎬 Demo mode:', newMode ? 'enabled' : 'disabled');
+        };
+
+        window.simulateFinanceClick = function() {
+            const financeArticles = document.querySelectorAll('[data-article-tag="finance"]');
+            if (financeArticles.length > 0) {
+                const randomArticle = financeArticles[Math.floor(Math.random() * financeArticles.length)];
+                randomArticle.click();
+                console.log('🎯 Simulated finance article click');
+            }
+        };
+
+        window.checkAdQualification = function() {
+            const financeClicks = JSON.parse(localStorage.getItem('spotlite_finance_clicks') || '[]');
+            const qualified = financeClicks.length >= 2;
+            
+            console.log('📊 Ad Qualification Check:', {
+                financeClicks: financeClicks.length,
+                threshold: 2,
+                qualified: qualified
+            });
+            
+            return qualified;
+        };
+
+        window.resetDemoState = function() {
+            localStorage.removeItem('zookies_attestations');
+            localStorage.removeItem('spotlite_finance_clicks');
+            localStorage.removeItem('spotlite_demo_mode');
+            sessionStorage.removeItem('spotlite_session_id');
+            
+            console.log('🔄 Demo state reset');
+            location.reload();
+        };
+
+        window.getDemoStats = function() {
+            const attestations = JSON.parse(localStorage.getItem('zookies_attestations') || '[]');
+            const financeClicks = JSON.parse(localStorage.getItem('spotlite_finance_clicks') || '[]');
+            
+            const stats = {
+                site: 'spotlite.news',
+                totalAttestations: attestations.length,
+                financeClicks: financeClicks.length,
+                qualifiesForAds: financeClicks.length >= 2,
+                threshold: 2,
+                financeArticles: window.getFinanceArticles().length,
+                sessionId: getSessionId(),
+                demoMode: localStorage.getItem('spotlite_demo_mode') === 'true'
+            };
+            
+            console.log('📊 Demo Stats:', stats);
+            return stats;
+        };
     </script>
 </body>
 </html> 

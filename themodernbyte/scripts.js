@@ -7,6 +7,15 @@
 let zkAgent;
 let currentUser = null;
 let userAttestations = [];
+let financeArticleClicks = [];
+
+// Finance article tracking keywords
+const FINANCE_KEYWORDS = [
+    'finance', 'investment', 'banking', 'cryptocurrency', 'stocks', 'trading',
+    'economy', 'financial', 'money', 'budget', 'loan', 'credit', 'insurance',
+    'retirement', 'savings', 'portfolio', 'market', 'bonds', 'dividend', 'tax',
+    'yield', 'interest', 'apy', 'fintech', 'defi', 'crypto', 'wallet'
+];
 
 // Ensure zkAgent is available globally
 window.zkAgent = null;
@@ -50,10 +59,10 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 // Set up all event listeners
 function setupEventListeners() {
-    // Ad click handlers
-    const adCards = document.querySelectorAll('.ad-card');
-    adCards.forEach(adCard => {
-        adCard.addEventListener('click', handleAdCardClick);
+    // Article link handlers for attestation tracking
+    const articleLinks = document.querySelectorAll('.article-link');
+    articleLinks.forEach(link => {
+        link.addEventListener('click', handleArticleClick);
     });
     
     // Navigation link handlers
@@ -62,61 +71,77 @@ function setupEventListeners() {
         link.addEventListener('click', handleNavClick);
     });
     
-    // Modal overlay click handler (close on outside click)
-    const modalOverlay = document.getElementById('adModalOverlay');
-    if (modalOverlay) {
-        modalOverlay.addEventListener('click', function(e) {
-            if (e.target === modalOverlay) {
-                closeAdModal();
-            }
-        });
-    }
+    // Add click tracking for any finance-related content
+    const financeArticles = document.querySelectorAll('[data-article-tag="finance"]');
+    financeArticles.forEach(article => {
+        article.addEventListener('click', handleFinanceArticleClick);
+    });
     
     // Keyboard navigation for accessibility
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
-            closeAdModal();
+            // Close any open modals or panels
+            closeModals();
         }
     });
 }
 
-// Handle ad card clicks
-async function handleAdCardClick(event) {
-    event.preventDefault();
+// Handle article link clicks for attestation tracking
+async function handleArticleClick(event) {
+    const link = event.currentTarget;
+    const articleId = link.getAttribute('data-article-id');
+    const article = link.closest('.article-card');
+    const articleTag = article?.getAttribute('data-article-tag');
+    const articleTitle = article?.querySelector('h2')?.textContent || '';
     
-    const adCard = event.currentTarget;
-    const adTag = adCard.getAttribute('data-tag');
-    const adId = adCard.getAttribute('data-ad-id');
-    const adTitle = adCard.querySelector('h3')?.textContent || '';
-    const adDescription = adCard.querySelector('p')?.textContent || '';
+    console.log('Article clicked:', { articleId, articleTag, articleTitle });
     
-    console.log('Ad clicked:', { adTag, adId, adTitle });
+    // Create attestation for article interaction
+    const attestation = createArticleAttestation(articleId, articleTag, articleTitle);
     
-    try {
-        // Show loading state
-        adCard.style.opacity = '0.7';
+    // Store attestation
+    await storeAttestation(attestation);
+    
+    // If it's a finance article, track it specially
+    if (articleTag === 'finance') {
+        await trackFinanceArticleClick(articleId, articleTitle);
+    }
+    
+    // Update user profile
+    await updateUserProfile(articleTag);
+    
+    // Allow the link to continue (don't prevent default)
+    return true;
+}
+
+// Handle finance article clicks specifically
+async function handleFinanceArticleClick(event) {
+    const article = event.currentTarget;
+    const articleTag = article.getAttribute('data-article-tag');
+    const articleId = article.id;
+    const articleTitle = article.querySelector('h2')?.textContent || '';
+    
+    // Only track if it's truly a finance article
+    if (articleTag === 'finance') {
+        console.log('Finance article interaction:', { articleId, articleTitle });
         
-        // Create attestation for ad interaction - this will handle the modal display
-        const result = await zkAgent.onAdClick(adTag, 'themodernbyte.com');
+        // Create attestation for finance article interaction
+        const attestation = createArticleAttestation(articleId, articleTag, articleTitle);
         
-        if (result.success) {
-            console.log('Attestation created successfully:', result.attestation);
-            
-            // Update user profile
-            await updateUserProfile(adTag);
-            
-            // Show success message
-            showSuccessMessage('Ad interaction recorded successfully!');
-        } else {
-            throw new Error(result.error || 'Failed to create attestation');
-        }
+        // Store attestation
+        await storeAttestation(attestation);
         
-    } catch (error) {
-        console.error('Error handling ad click:', error);
-        showErrorMessage('Failed to record ad interaction');
-    } finally {
-        // Restore ad card appearance
-        adCard.style.opacity = '1';
+        // Track finance click
+        await trackFinanceArticleClick(articleId, articleTitle);
+        
+        // Update user profile
+        await updateUserProfile(articleTag);
+        
+        // Show subtle success message
+        showSuccessMessage('Finance article interaction recorded!');
+        
+        // Emit event for ZooKies integration
+        emitFinanceArticleEvent(articleId, articleTitle);
     }
 }
 
@@ -306,6 +331,143 @@ async function updateUserProfile(tag) {
     } catch (error) {
         console.error('Error updating user profile:', error);
     }
+}
+
+// ========== NEW ATTESTATION TRACKING FUNCTIONS ==========
+
+// Create attestation object for article interactions
+function createArticleAttestation(articleId, articleTag, articleTitle) {
+    const sessionId = getOrCreateSessionId();
+    const timestamp = new Date().toISOString();
+    
+    return {
+        id: `att_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        type: 'article_click',
+        articleId: articleId,
+        articleTag: articleTag,
+        articleTitle: articleTitle.replace(/💰 Finance$/, '').trim(), // Clean up the title
+        timestamp: timestamp,
+        sessionId: sessionId,
+        site: 'themodernbyte.com',
+        userAction: 'click',
+        metadata: {
+            url: window.location.href,
+            userAgent: navigator.userAgent.substring(0, 100) // Truncated for privacy
+        }
+    };
+}
+
+// Store attestation in localStorage and profile-store
+async function storeAttestation(attestation) {
+    try {
+        // Store in localStorage for immediate access
+        const existingAttestations = JSON.parse(localStorage.getItem('zk_attestations') || '[]');
+        existingAttestations.push(attestation);
+        
+        // Keep only last 100 attestations to prevent storage bloat
+        if (existingAttestations.length > 100) {
+            existingAttestations.splice(0, existingAttestations.length - 100);
+        }
+        
+        localStorage.setItem('zk_attestations', JSON.stringify(existingAttestations));
+        
+        // Store in global attestations array
+        userAttestations.push(attestation);
+        
+        console.log('Attestation stored:', attestation);
+        
+        // Update profile viewer
+        updateProfileDisplay();
+        
+        return true;
+    } catch (error) {
+        console.error('Failed to store attestation:', error);
+        return false;
+    }
+}
+
+// Track finance article clicks specifically
+async function trackFinanceArticleClick(articleId, articleTitle) {
+    try {
+        const financeClick = {
+            id: `fin_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            articleId: articleId,
+            articleTitle: articleTitle.replace(/💰 Finance$/, '').trim(),
+            timestamp: new Date().toISOString(),
+            site: 'themodernbyte.com'
+        };
+        
+        // Store in finance-specific array
+        financeArticleClicks.push(financeClick);
+        
+        // Store in localStorage
+        const existingFinanceClicks = JSON.parse(localStorage.getItem('zk_finance_clicks') || '[]');
+        existingFinanceClicks.push(financeClick);
+        localStorage.setItem('zk_finance_clicks', JSON.stringify(existingFinanceClicks));
+        
+        console.log(`Finance click tracked (${financeArticleClicks.length} total):`, financeClick);
+        
+        // Check if user qualifies for ads (2+ finance clicks)
+        if (financeArticleClicks.length >= 2) {
+            console.log('🎯 User qualifies for targeted ads!');
+            emitQualificationEvent();
+        }
+        
+        return true;
+    } catch (error) {
+        console.error('Failed to track finance click:', error);
+        return false;
+    }
+}
+
+// Emit event for ZooKies integration
+function emitFinanceArticleEvent(articleId, articleTitle) {
+    const event = new CustomEvent('finance-article-click', {
+        detail: {
+            articleId,
+            articleTitle: articleTitle.replace(/💰 Finance$/, '').trim(),
+            timestamp: new Date().toISOString(),
+            site: 'themodernbyte.com',
+            totalFinanceClicks: financeArticleClicks.length
+        }
+    });
+    
+    window.dispatchEvent(event);
+    console.log('Finance article event emitted:', event.detail);
+}
+
+// Emit qualification event when user reaches threshold
+function emitQualificationEvent() {
+    const event = new CustomEvent('user-qualified-for-ads', {
+        detail: {
+            totalFinanceClicks: financeArticleClicks.length,
+            timestamp: new Date().toISOString(),
+            site: 'themodernbyte.com'
+        }
+    });
+    
+    window.dispatchEvent(event);
+    console.log('User qualification event emitted:', event.detail);
+}
+
+// Get or create session ID
+function getOrCreateSessionId() {
+    let sessionId = sessionStorage.getItem('zk_session_id');
+    if (!sessionId) {
+        sessionId = `sess_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        sessionStorage.setItem('zk_session_id', sessionId);
+    }
+    return sessionId;
+}
+
+// Close any open modals or panels
+function closeModals() {
+    // Close any modals that might be open
+    const modals = document.querySelectorAll('.modal-overlay, .ad-modal-overlay');
+    modals.forEach(modal => {
+        modal.classList.remove('active');
+        setTimeout(() => modal.style.display = 'none', 300);
+    });
 }
 
 // Refresh profile data
@@ -922,4 +1084,138 @@ function setupWalletConsoleDebug() {
     console.log('  window.zkAgent.ensureWalletAndProfile() - Initialize Privy wallet');
     console.log('  window.zkAgent.getProfile() - Get profile summary');
     console.log('  window.zkAgent.refreshWallet() - Refresh wallet display');
-} 
+}
+
+// ========== ZOOKIES DEMO INTEGRATION HOOKS ==========
+
+// Expose attestation functions for ZooKies integration
+window.getAttestations = function() {
+    return {
+        all: JSON.parse(localStorage.getItem('zk_attestations') || '[]'),
+        finance: JSON.parse(localStorage.getItem('zk_finance_clicks') || '[]'),
+        count: userAttestations.length,
+        financeCount: financeArticleClicks.length
+    };
+};
+
+// Get finance articles information
+window.getFinanceArticles = function() {
+    const financeArticles = document.querySelectorAll('[data-article-tag="finance"]');
+    return Array.from(financeArticles).map(article => ({
+        id: article.id,
+        title: article.querySelector('h2')?.textContent?.replace(/💰 Finance$/, '').trim(),
+        tag: article.getAttribute('data-article-tag'),
+        element: article
+    }));
+};
+
+// Demo mode toggle for highlighting finance articles
+window.toggleDemoMode = function() {
+    const body = document.body;
+    const isDemoMode = body.classList.contains('demo-mode');
+    
+    if (isDemoMode) {
+        body.classList.remove('demo-mode');
+        console.log('Demo mode disabled');
+    } else {
+        body.classList.add('demo-mode');
+        console.log('Demo mode enabled - finance articles highlighted');
+        
+        // Add demo mode styles
+        if (!document.getElementById('demo-mode-styles')) {
+            const styles = document.createElement('style');
+            styles.id = 'demo-mode-styles';
+            styles.textContent = `
+                .demo-mode .finance-article {
+                    border: 3px solid #ffeb3b !important;
+                    background: linear-gradient(135deg, #fff9c4, #fff59d) !important;
+                    transform: scale(1.02) !important;
+                    box-shadow: 0 8px 25px rgba(255, 235, 59, 0.3) !important;
+                }
+                .demo-mode .finance-badge {
+                    background: #4caf50 !important;
+                    color: white !important;
+                    padding: 4px 8px !important;
+                    border-radius: 12px !important;
+                    font-size: 0.8rem !important;
+                    animation: pulse 2s infinite !important;
+                }
+                @keyframes pulse {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.7; }
+                }
+            `;
+            document.head.appendChild(styles);
+        }
+    }
+    
+    return !isDemoMode;
+};
+
+// Force trigger finance article click for demo
+window.simulateFinanceClick = function() {
+    const financeArticle = document.querySelector('[data-article-tag="finance"]');
+    if (financeArticle) {
+        financeArticle.click();
+        return true;
+    }
+    return false;
+};
+
+// Check if user qualifies for ads
+window.checkAdQualification = function() {
+    const financeClicks = JSON.parse(localStorage.getItem('zk_finance_clicks') || '[]');
+    const qualified = financeClicks.length >= 2;
+    
+    console.log(`User ${qualified ? 'QUALIFIES' : 'does not qualify'} for ads:`, {
+        financeClicks: financeClicks.length,
+        threshold: 2,
+        qualified,
+        recentClicks: financeClicks.slice(-5)
+    });
+    
+    return {
+        qualified,
+        financeClicks: financeClicks.length,
+        threshold: 2
+    };
+};
+
+// Reset demo state
+window.resetDemoState = function() {
+    localStorage.removeItem('zk_attestations');
+    localStorage.removeItem('zk_finance_clicks');
+    sessionStorage.removeItem('zk_session_id');
+    
+    financeArticleClicks.length = 0;
+    userAttestations.length = 0;
+    
+    updateProfileDisplay();
+    
+    console.log('Demo state reset - all attestations and finance clicks cleared');
+    return true;
+};
+
+// Demo stats
+window.getDemoStats = function() {
+    const attestations = JSON.parse(localStorage.getItem('zk_attestations') || '[]');
+    const financeClicks = JSON.parse(localStorage.getItem('zk_finance_clicks') || '[]');
+    
+    return {
+        totalAttestations: attestations.length,
+        financeClicks: financeClicks.length,
+        qualified: financeClicks.length >= 2,
+        lastActivity: attestations.length > 0 ? attestations[attestations.length - 1].timestamp : null,
+        sessionId: sessionStorage.getItem('zk_session_id'),
+        site: 'themodernbyte.com'
+    };
+};
+
+console.log('🎯 ZooKies demo integration hooks loaded:');
+console.log('- window.getAttestations() - Get all attestations');
+console.log('- window.getFinanceArticles() - Get finance articles info');
+console.log('- window.toggleDemoMode() - Toggle demo highlighting');
+console.log('- window.simulateFinanceClick() - Simulate finance click');
+console.log('- window.checkAdQualification() - Check if user qualifies');
+console.log('- window.resetDemoState() - Reset all demo data');
+console.log('- window.getDemoStats() - Get current demo statistics');

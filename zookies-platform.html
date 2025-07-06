@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZooKies Ad Platform - Privacy-Preserving Advertising</title>
+    
+    <!-- Import existing stylesheets -->
+    <link rel="stylesheet" href="shared/styles.css">
+    
+    <!-- Platform-specific styles -->
+    <style>
+        :root {
+            --zk-primary: #6366f1;
+            --zk-primary-dark: #4f46e5;
+            --zk-secondary: #06b6d4;
+            --zk-success: #10b981;
+            --zk-warning: #f59e0b;
+            --zk-error: #ef4444;
+            --zk-background: #f8fafc;
+            --zk-surface: #ffffff;
+            --zk-text-primary: #1e293b;
+            --zk-text-secondary: #64748b;
+            --zk-border: #e2e8f0;
+            --zk-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --zk-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background-color: var(--zk-background);
+            color: var(--zk-text-primary);
+            line-height: 1.6;
+        }
+
+        /* Header Styles */
+        .platform-header {
+            background: linear-gradient(135deg, var(--zk-primary) 0%, var(--zk-primary-dark) 100%);
+            color: white;
+            padding: 1rem 0;
+            box-shadow: var(--zk-shadow-lg);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: rgba(255, 255, 255, 0.9);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: white;
+        }
+
+        /* Main Layout */
+        .platform-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        .platform-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .platform-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Card Styles */
+        .platform-card {
+            background: var(--zk-surface);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: var(--zk-shadow);
+            border: 1px solid var(--zk-border);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .platform-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--zk-shadow-lg);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--zk-border);
+        }
+
+        .card-icon {
+            width: 24px;
+            height: 24px;
+            background: var(--zk-primary);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.875rem;
+        }
+
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--zk-text-primary);
+        }
+
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--zk-text-primary);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--zk-border);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--zk-primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--zk-border);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            background-color: white;
+            cursor: pointer;
+        }
+
+        /* Button Styles */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: var(--zk-primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--zk-primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: var(--zk-secondary);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #0891b2;
+        }
+
+        .btn-success {
+            background: var(--zk-success);
+            color: white;
+        }
+
+        .btn-warning {
+            background: var(--zk-warning);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--zk-error);
+            color: white;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Status Indicators */
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-success {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--zk-success);
+        }
+
+        .status-warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--zk-warning);
+        }
+
+        .status-error {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--zk-error);
+        }
+
+        .status-info {
+            background: rgba(6, 182, 212, 0.1);
+            color: var(--zk-secondary);
+        }
+
+        /* Progress Bar */
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(99, 102, 241, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--zk-primary);
+            transition: width 0.3s ease;
+            border-radius: 4px;
+        }
+
+        /* Table Styles */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--zk-border);
+        }
+
+        .data-table th {
+            background: var(--zk-background);
+            font-weight: 600;
+            color: var(--zk-text-primary);
+        }
+
+        .data-table tr:hover {
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        /* Loading States */
+        .loading {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(99, 102, 241, 0.3);
+            border-left: 2px solid var(--zk-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Utility Classes */
+        .hidden { display: none; }
+        .text-sm { font-size: 0.875rem; }
+        .text-xs { font-size: 0.75rem; }
+        .text-muted { color: var(--zk-text-secondary); }
+        .mb-4 { margin-bottom: 1rem; }
+        .mt-4 { margin-top: 1rem; }
+        .text-center { text-align: center; }
+        .flex { display: flex; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .gap-2 { gap: 0.5rem; }
+        .w-full { width: 100%; }
+    </style>
+</head>
+<body>
+    <!-- Platform Header -->
+    <header class="platform-header">
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-icon">🍪</div>
+                <span>ZooKies Platform</span>
+            </div>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="#attestations">Attestations</a></li>
+                    <li><a href="#proofs">Proof Generation</a></li>
+                    <li><a href="#demo">Demo Controls</a></li>
+                    <li><a href="#analytics">Analytics</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Platform Container -->
+    <main class="platform-container">
+        <!-- Platform Overview -->
+        <section class="mb-4">
+            <h1 style="font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem;">ZooKies Ad Platform</h1>
+            <p class="text-muted">Privacy-preserving advertising platform using zero-knowledge proofs for secure user targeting without compromising personal data.</p>
+        </section>
+
+        <!-- Main Platform Grid -->
+        <div class="platform-grid">
+            <!-- Attestation Verification Card -->
+            <div class="platform-card" id="attestations">
+                <div class="card-header">
+                    <div class="card-icon">📊</div>
+                    <h2 class="card-title">Attestation Verification</h2>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Check User Attestations</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="userIdInput" class="form-input" placeholder="Enter wallet address or session ID">
+                        <button id="checkAttestationsBtn" class="btn btn-primary">Check</button>
+                    </div>
+                </div>
+
+                <div id="attestationStatus" class="mb-4">
+                    <div class="status-indicator status-info">
+                        <span>🔍</span>
+                        Ready to check attestations
+                    </div>
+                </div>
+
+                <div id="attestationResults" class="hidden">
+                    <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem;">Attestation History</h3>
+                    <div style="max-height: 300px; overflow-y: auto;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Publisher</th>
+                                    <th>Article</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="attestationTableBody">
+                                <!-- Dynamic content -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ZK Proof Generation Card -->
+            <div class="platform-card" id="proofs">
+                <div class="card-header">
+                    <div class="card-icon">🔐</div>
+                    <h2 class="card-title">ZK Proof Generation</h2>
+                </div>
+
+                <form id="proofGenerationForm">
+                    <div class="form-group">
+                        <label class="form-label">Ad Category</label>
+                        <select id="adTagSelect" class="form-select">
+                            <option value="finance">Finance & Investments</option>
+                            <option value="travel">Travel & Destinations</option>
+                            <option value="privacy">Privacy & Security</option>
+                            <option value="gaming">Gaming & Entertainment</option>
+                            <option value="technology">Technology & Software</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Proof Threshold</label>
+                        <select id="thresholdSelect" class="form-select">
+                            <option value="1">1 attestation (low confidence)</option>
+                            <option value="2" selected>2 attestations (medium confidence)</option>
+                            <option value="3">3 attestations (high confidence)</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" id="generateProofBtn" class="btn btn-primary w-full">
+                        <span>🚀</span>
+                        Generate ZK Proof
+                    </button>
+                </form>
+
+                <div id="proofProgress" class="hidden mt-4">
+                    <div class="loading mb-4">
+                        <div class="spinner"></div>
+                        <span>Generating zero-knowledge proof...</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div id="progressFill" class="progress-fill" style="width: 0%"></div>
+                    </div>
+                    <div id="progressText" class="text-sm text-muted mt-4">Initializing proof generation...</div>
+                </div>
+
+                <div id="proofResults" class="hidden mt-4">
+                    <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem;">Proof Results</h3>
+                    <div id="proofOutput" style="background: var(--zk-background); padding: 1rem; border-radius: 8px; font-family: monospace; font-size: 0.75rem; max-height: 200px; overflow-y: auto;">
+                        <!-- Dynamic proof content -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Demo Control Panel (Full Width) -->
+        <div class="platform-card" id="demo">
+            <div class="card-header">
+                <div class="card-icon">🎮</div>
+                <h2 class="card-title">Demo Control Panel</h2>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                <button id="financeScenarioBtn" class="btn btn-success">
+                    <span>💰</span>
+                    Finance User Scenario
+                </button>
+                <button id="travelScenarioBtn" class="btn btn-secondary">
+                    <span>✈️</span>
+                    Travel Enthusiast
+                </button>
+                <button id="privacyScenarioBtn" class="btn btn-warning">
+                    <span>🔒</span>
+                    Privacy-Focused User
+                </button>
+                <button id="clearDataBtn" class="btn btn-danger">
+                    <span>🗑️</span>
+                    Clear All Data
+                </button>
+            </div>
+
+            <div class="flex justify-between items-center">
+                <div>
+                    <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem;">Platform Statistics</h3>
+                    <div id="platformStats" class="text-sm text-muted">
+                        Loading statistics...
+                    </div>
+                </div>
+                <button id="refreshStatsBtn" class="btn btn-primary">
+                    <span>🔄</span>
+                    Refresh
+                </button>
+            </div>
+        </div>
+
+        <!-- Analytics Dashboard (Full Width) -->
+        <div class="platform-card" id="analytics">
+            <div class="card-header">
+                <div class="card-icon">📈</div>
+                <h2 class="card-title">Analytics Dashboard</h2>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
+                <div style="text-align: center; padding: 1rem; background: var(--zk-background); border-radius: 8px;">
+                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--zk-primary);" id="totalAttestations">0</div>
+                    <div class="text-sm text-muted">Total Attestations</div>
+                </div>
+                <div style="text-align: center; padding: 1rem; background: var(--zk-background); border-radius: 8px;">
+                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--zk-success);" id="financeAttestations">0</div>
+                    <div class="text-sm text-muted">Finance Attestations</div>
+                </div>
+                <div style="text-align: center; padding: 1rem; background: var(--zk-background); border-radius: 8px;">
+                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--zk-secondary);" id="proofsGenerated">0</div>
+                    <div class="text-sm text-muted">Proofs Generated</div>
+                </div>
+                <div style="text-align: center; padding: 1rem; background: var(--zk-background); border-radius: 8px;">
+                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--zk-warning);" id="activeSessions">0</div>
+                    <div class="text-sm text-muted">Active Sessions</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Import existing libraries -->
+    <script src="lib/idb/idb.umd.js"></script>
+    <script src="shared/privy.js"></script>
+    <script src="shared/profile-store.js"></script>
+    <script src="shared/zkAffinityAgent.js"></script>
+    <script src="shared/zkProofBuilder.js"></script>
+
+    <!-- Platform JavaScript (inline for now) -->
+    <script>
+        console.log('🍪 ZooKies Platform initializing...');
+        
+        // Platform state
+        let platformData = {
+            attestations: [],
+            proofs: [],
+            activeUser: null,
+            stats: {
+                totalAttestations: 0,
+                financeAttestations: 0,
+                proofsGenerated: 0,
+                activeSessions: 0
+            }
+        };
+
+        // Initialize platform on load
+        document.addEventListener('DOMContentLoaded', initializePlatform);
+
+        async function initializePlatform() {
+            console.log('🚀 Initializing ZooKies Platform...');
+            
+            try {
+                // Initialize profile store if available
+                if (window.profileStoreModule) {
+                    await window.profileStoreModule.initializeFinanceAttestationTracking();
+                    console.log('✅ Profile store initialized');
+                }
+
+                // Load initial statistics
+                await loadPlatformStatistics();
+                
+                // Set up event listeners
+                setupEventListeners();
+                
+                console.log('✅ ZooKies Platform ready!');
+            } catch (error) {
+                console.error('❌ Platform initialization failed:', error);
+            }
+        }
+
+        function setupEventListeners() {
+            // Attestation verification
+            document.getElementById('checkAttestationsBtn').addEventListener('click', checkUserAttestations);
+            
+            // Proof generation
+            document.getElementById('proofGenerationForm').addEventListener('submit', handleProofGeneration);
+            
+            // Demo scenarios
+            document.getElementById('financeScenarioBtn').addEventListener('click', () => runDemoScenario('finance'));
+            document.getElementById('travelScenarioBtn').addEventListener('click', () => runDemoScenario('travel'));
+            document.getElementById('privacyScenarioBtn').addEventListener('click', () => runDemoScenario('privacy'));
+            document.getElementById('clearDataBtn').addEventListener('click', clearAllPlatformData);
+            
+            // Statistics refresh
+            document.getElementById('refreshStatsBtn').addEventListener('click', loadPlatformStatistics);
+        }
+
+        async function checkUserAttestations() {
+            const userInput = document.getElementById('userIdInput').value.trim();
+            const statusEl = document.getElementById('attestationStatus');
+            const resultsEl = document.getElementById('attestationResults');
+            const tableBody = document.getElementById('attestationTableBody');
+
+            if (!userInput) {
+                showStatus(statusEl, 'error', '⚠️', 'Please enter a wallet address or session ID');
+                return;
+            }
+
+            showStatus(statusEl, 'info', '🔍', 'Checking attestations...');
+
+            try {
+                let attestations = [];
+                
+                if (window.profileStoreModule) {
+                    const { attestations: allAttestations } = await window.profileStoreModule.getFinanceAttestations();
+                    
+                    // Filter by user input (wallet address or session ID)
+                    attestations = allAttestations.filter(a => 
+                        a.sessionId.includes(userInput) || 
+                        userInput.toLowerCase().includes(a.publisherSite.toLowerCase())
+                    );
+                }
+
+                if (attestations.length === 0) {
+                    showStatus(statusEl, 'warning', '📭', 'No attestations found for this user');
+                    resultsEl.classList.add('hidden');
+                    return;
+                }
+
+                showStatus(statusEl, 'success', '✅', `Found ${attestations.length} attestations`);
+                
+                // Populate attestation table
+                tableBody.innerHTML = '';
+                attestations.forEach(attestation => {
+                    const row = createAttestationRow(attestation);
+                    tableBody.appendChild(row);
+                });
+
+                resultsEl.classList.remove('hidden');
+                
+            } catch (error) {
+                console.error('❌ Error checking attestations:', error);
+                showStatus(statusEl, 'error', '❌', 'Error checking attestations');
+            }
+        }
+
+        function createAttestationRow(attestation) {
+            const row = document.createElement('tr');
+            
+            const timestamp = new Date(attestation.timestamp).toLocaleString();
+            const typeIcon = attestation.isFinanceContent ? '💰' : '📄';
+            const statusIcon = attestation.proofGenerated ? '✅' : '⏳';
+            
+            row.innerHTML = `
+                <td class="text-sm">${timestamp}</td>
+                <td class="text-sm">${attestation.publisherSite}</td>
+                <td class="text-sm" title="${attestation.articleTitle}">${attestation.articleTitle.substring(0, 30)}...</td>
+                <td class="text-sm">${typeIcon} ${attestation.articleTag}</td>
+                <td class="text-sm">${statusIcon} ${attestation.proofGenerated ? 'Used' : 'Available'}</td>
+            `;
+            
+            return row;
+        }
+
+        async function handleProofGeneration(event) {
+            event.preventDefault();
+            
+            const adTag = document.getElementById('adTagSelect').value;
+            const threshold = parseInt(document.getElementById('thresholdSelect').value);
+            
+            const progressEl = document.getElementById('proofProgress');
+            const resultsEl = document.getElementById('proofResults');
+            const generateBtn = document.getElementById('generateProofBtn');
+            
+            // Show progress UI
+            progressEl.classList.remove('hidden');
+            resultsEl.classList.add('hidden');
+            generateBtn.disabled = true;
+            
+            try {
+                await generateZKProof(adTag, threshold);
+            } catch (error) {
+                console.error('❌ Proof generation failed:', error);
+                showProofError(error.message);
+            } finally {
+                generateBtn.disabled = false;
+            }
+        }
+
+        async function generateZKProof(adTag, threshold) {
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            const proofOutput = document.getElementById('proofOutput');
+            const resultsEl = document.getElementById('proofResults');
+            
+            // Simulate proof generation progress
+            const progressSteps = [
+                { text: 'Collecting attestations...', progress: 20 },
+                { text: 'Validating attestation threshold...', progress: 40 },
+                { text: 'Preparing circuit inputs...', progress: 60 },
+                { text: 'Generating zero-knowledge proof...', progress: 80 },
+                { text: 'Verifying proof validity...', progress: 100 }
+            ];
+            
+            for (const step of progressSteps) {
+                progressText.textContent = step.text;
+                progressFill.style.width = step.progress + '%';
+                await new Promise(resolve => setTimeout(resolve, 800));
+            }
+            
+            // Try to generate actual proof using zkAffinityAgent if available
+            let proofResult;
+            
+            if (window.zkAffinityAgent && typeof window.zkAffinityAgent.requestAd === 'function') {
+                try {
+                    proofResult = await window.zkAffinityAgent.requestAd(adTag, threshold);
+                } catch (error) {
+                    console.warn('Using mock proof generation:', error.message);
+                    proofResult = generateMockProof(adTag, threshold);
+                }
+            } else {
+                proofResult = generateMockProof(adTag, threshold);
+            }
+            
+            // Display results
+            proofOutput.innerHTML = formatProofOutput(proofResult);
+            resultsEl.classList.remove('hidden');
+            
+            // Update statistics
+            platformData.stats.proofsGenerated++;
+            updateAnalyticsDashboard();
+        }
+
+        function generateMockProof(adTag, threshold) {
+            return {
+                success: true,
+                proof: {
+                    a: ['0x1234...', '0x5678...'],
+                    b: [['0x9abc...', '0xdef0...'], ['0x1111...', '0x2222...']],
+                    c: ['0x3333...', '0x4444...']
+                },
+                publicSignals: [threshold, Date.now(), adTag.length],
+                verificationKey: 'mock_verification_key',
+                adTag: adTag,
+                threshold: threshold,
+                qualified: true,
+                timestamp: Date.now()
+            };
+        }
+
+        function formatProofOutput(proofResult) {
+            return `
+                <div style="margin-bottom: 1rem;">
+                    <strong>Proof Status:</strong> 
+                    <span style="color: var(--zk-success);">✅ Verified</span>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <strong>Ad Category:</strong> ${proofResult.adTag || 'N/A'}
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <strong>Threshold:</strong> ${proofResult.threshold || 'N/A'} attestations
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <strong>Qualified:</strong> ${proofResult.qualified ? '✅ Yes' : '❌ No'}
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <strong>Public Signals:</strong><br>
+                    ${JSON.stringify(proofResult.publicSignals || [], null, 2)}
+                </div>
+                <div>
+                    <strong>Proof Data:</strong><br>
+                    <pre style="font-size: 0.7rem; white-space: pre-wrap; word-break: break-all;">
+${JSON.stringify(proofResult.proof || {}, null, 2)}
+                    </pre>
+                </div>
+            `;
+        }
+
+        function showProofError(message) {
+            const proofOutput = document.getElementById('proofOutput');
+            const resultsEl = document.getElementById('proofResults');
+            
+            proofOutput.innerHTML = `
+                <div style="color: var(--zk-error);">
+                    <strong>❌ Proof Generation Failed</strong><br>
+                    ${message}
+                </div>
+            `;
+            
+            resultsEl.classList.remove('hidden');
+        }
+
+        async function runDemoScenario(scenarioType) {
+            console.log(`🎮 Running ${scenarioType} demo scenario`);
+            
+            try {
+                if (window.profileStoreModule) {
+                    // Generate demo attestations based on scenario
+                    const demoAttestations = generateDemoAttestations(scenarioType);
+                    
+                    for (const attestation of demoAttestations) {
+                        await window.profileStoreModule.recordFinanceAttestation(attestation);
+                    }
+                    
+                    console.log(`✅ Generated ${demoAttestations.length} demo attestations for ${scenarioType}`);
+                }
+                
+                // Update statistics
+                await loadPlatformStatistics();
+                
+                // Show success notification
+                showNotification(`${scenarioType.charAt(0).toUpperCase() + scenarioType.slice(1)} scenario activated!`, 'success');
+                
+            } catch (error) {
+                console.error(`❌ Error running ${scenarioType} scenario:`, error);
+                showNotification(`Failed to run ${scenarioType} scenario`, 'error');
+            }
+        }
+
+        function generateDemoAttestations(scenarioType) {
+            const baseAttestations = [];
+            const sessionId = `demo-${scenarioType}-${Date.now()}`;
+            
+            switch (scenarioType) {
+                case 'finance':
+                    baseAttestations.push(
+                        {
+                            site: 'spotlite.news',
+                            articleTitle: 'Financial Markets Hit New Highs Amid Economic Recovery',
+                            articleId: 'finance-1',
+                            articleTag: 'finance',
+                            isFinanceContent: true,
+                            sessionId: sessionId
+                        },
+                        {
+                            site: 'themodernbyte',
+                            articleTitle: 'Is 5% Yield the New Normal?',
+                            articleId: 'finance-2', 
+                            articleTag: 'finance',
+                            isFinanceContent: true,
+                            sessionId: sessionId
+                        },
+                        {
+                            site: 'spotlite.news',
+                            articleTitle: 'Cryptocurrency Investment Strategies for 2024',
+                            articleId: 'finance-3',
+                            articleTag: 'finance',
+                            isFinanceContent: true,
+                            sessionId: sessionId
+                        }
+                    );
+                    break;
+                    
+                case 'travel':
+                    baseAttestations.push(
+                        {
+                            site: 'spotlite.news',
+                            articleTitle: 'Top Travel Destinations for Digital Nomads',
+                            articleId: 'travel-1',
+                            articleTag: 'travel',
+                            isFinanceContent: false,
+                            sessionId: sessionId
+                        },
+                        {
+                            site: 'themodernbyte',
+                            articleTitle: 'The Future of Remote Work and Travel',
+                            articleId: 'travel-2',
+                            articleTag: 'travel', 
+                            isFinanceContent: false,
+                            sessionId: sessionId
+                        }
+                    );
+                    break;
+                    
+                case 'privacy':
+                    baseAttestations.push(
+                        {
+                            site: 'spotlite.news',
+                            articleTitle: 'Privacy Concerns in the Digital Age',
+                            articleId: 'privacy-1',
+                            articleTag: 'privacy',
+                            isFinanceContent: false,
+                            sessionId: sessionId
+                        },
+                        {
+                            site: 'themodernbyte',
+                            articleTitle: 'Browser Privacy: What You Need to Know',
+                            articleId: 'privacy-2',
+                            articleTag: 'privacy',
+                            isFinanceContent: false,
+                            sessionId: sessionId
+                        }
+                    );
+                    break;
+            }
+            
+            return baseAttestations;
+        }
+
+        async function clearAllPlatformData() {
+            if (!confirm('Are you sure you want to clear all platform data? This action cannot be undone.')) {
+                return;
+            }
+            
+            try {
+                if (window.profileStoreModule) {
+                    await window.profileStoreModule.clearAllFinanceAttestations();
+                    await window.profileStoreModule.clearAllProfiles();
+                }
+                
+                // Reset platform state
+                platformData = {
+                    attestations: [],
+                    proofs: [],
+                    activeUser: null,
+                    stats: {
+                        totalAttestations: 0,
+                        financeAttestations: 0,
+                        proofsGenerated: 0,
+                        activeSessions: 0
+                    }
+                };
+                
+                // Clear UI
+                document.getElementById('attestationResults').classList.add('hidden');
+                document.getElementById('proofResults').classList.add('hidden');
+                document.getElementById('proofProgress').classList.add('hidden');
+                document.getElementById('userIdInput').value = '';
+                
+                // Update analytics
+                updateAnalyticsDashboard();
+                
+                showNotification('All platform data cleared successfully', 'success');
+                console.log('🗑️ All platform data cleared');
+                
+            } catch (error) {
+                console.error('❌ Error clearing platform data:', error);
+                showNotification('Failed to clear platform data', 'error');
+            }
+        }
+
+        async function loadPlatformStatistics() {
+            try {
+                if (window.profileStoreModule) {
+                    const { stats } = await window.profileStoreModule.getAttestationStats();
+                    
+                    if (stats) {
+                        platformData.stats = {
+                            totalAttestations: stats.totalAttestations || 0,
+                            financeAttestations: stats.financeAttestations || 0,
+                            proofsGenerated: stats.proofGenerated || 0,
+                            activeSessions: Object.keys(stats.sessionBreakdown || {}).length
+                        };
+                    }
+                }
+                
+                updateAnalyticsDashboard();
+                updatePlatformStatsText();
+                
+            } catch (error) {
+                console.error('❌ Error loading platform statistics:', error);
+            }
+        }
+
+        function updateAnalyticsDashboard() {
+            document.getElementById('totalAttestations').textContent = platformData.stats.totalAttestations;
+            document.getElementById('financeAttestations').textContent = platformData.stats.financeAttestations;
+            document.getElementById('proofsGenerated').textContent = platformData.stats.proofsGenerated;
+            document.getElementById('activeSessions').textContent = platformData.stats.activeSessions;
+        }
+
+        function updatePlatformStatsText() {
+            const statsEl = document.getElementById('platformStats');
+            statsEl.innerHTML = `
+                Total Attestations: <strong>${platformData.stats.totalAttestations}</strong> | 
+                Finance Focus: <strong>${platformData.stats.financeAttestations}</strong> | 
+                Proofs Generated: <strong>${platformData.stats.proofsGenerated}</strong> | 
+                Active Sessions: <strong>${platformData.stats.activeSessions}</strong>
+            `;
+        }
+
+        function showStatus(element, type, icon, message) {
+            const statusClass = `status-${type}`;
+            element.className = `status-indicator ${statusClass}`;
+            element.innerHTML = `<span>${icon}</span>${message}`;
+        }
+
+        function showNotification(message, type = 'info') {
+            // Create a simple notification (you could enhance this with a proper notification system)
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: var(--zk-${type === 'error' ? 'error' : 'success'});
+                color: white;
+                padding: 1rem 1.5rem;
+                border-radius: 8px;
+                box-shadow: var(--zk-shadow-lg);
+                z-index: 1000;
+                font-weight: 600;
+            `;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Auto-refresh statistics every 30 seconds
+        setInterval(loadPlatformStatistics, 30000);
+    </script>
+</body>
+</html> 

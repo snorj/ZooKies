@@ -177,6 +177,52 @@ html, body {
     box-shadow: 0 4px 15px rgba(0,0,0,0.1);
 }
 
+/* Finance Badge Styling */
+.finance-badge {
+    background: linear-gradient(135deg, #ffc107, #ffeb3b);
+    color: #333;
+    font-size: 0.8rem;
+    font-weight: bold;
+    padding: 4px 8px;
+    border-radius: 12px;
+    margin-left: 8px;
+    box-shadow: 0 2px 4px rgba(255, 193, 7, 0.3);
+    display: inline-block;
+    vertical-align: middle;
+    animation: shimmer 2s infinite alternate;
+}
+
+@keyframes shimmer {
+    from { box-shadow: 0 2px 4px rgba(255, 193, 7, 0.3); }
+    to { box-shadow: 0 2px 8px rgba(255, 193, 7, 0.5); }
+}
+
+/* Article click tracking cursor */
+[data-article-id] {
+    transition: background-color 0.2s ease;
+    cursor: pointer;
+}
+
+[data-article-id]:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+    border-radius: 4px;
+}
+
+/* Demo mode highlighting */
+.demo-highlight {
+    background-color: #fff3cd !important;
+    border: 2px solid #ffc107 !important;
+    border-radius: 8px !important;
+    padding: 10px !important;
+    margin: 5px 0 !important;
+    animation: pulse 1.5s infinite alternate;
+}
+
+@keyframes pulse {
+    from { box-shadow: 0 0 5px rgba(255, 193, 7, 0.5); }
+    to { box-shadow: 0 0 15px rgba(255, 193, 7, 0.8); }
+}
+
 /* Sidebar */
 .sidebar {
     display: flex;
